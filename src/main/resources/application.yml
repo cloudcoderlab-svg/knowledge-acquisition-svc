@@ -84,6 +84,11 @@ knowledge-engine:
   project-pipeline:
     parallelism: 5
     poll-ms: 1000
+  project-summary:
+    max-input-chars: 50000
+    max-documents: 30
+    max-knowledge-chunks: 80
+    max-facts: 80
   knowledge-graph:
     enable-persistence: true
     batch-size: 100

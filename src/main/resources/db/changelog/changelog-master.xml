@@ -136,5 +136,36 @@
             <dropColumn schemaName="knowledge" tableName="knowledge_workflow_steps" columnName="project_id"/>
         </rollback>
     </changeSet>
+
+    <changeSet id="add-project-summary-profile" author="kengine">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists schemaName="knowledge" tableName="projects" columnName="summary"/>
+            </not>
+        </preConditions>
+        <addColumn schemaName="knowledge" tableName="projects">
+            <column name="summary" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="summary_embedding" type="vector(768)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="summary_generated_at" type="TIMESTAMPTZ">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <sql>
+            CREATE INDEX IF NOT EXISTS idx_projects_summary_embedding_hnsw
+                ON knowledge.projects
+                USING hnsw (summary_embedding vector_cosine_ops)
+                WHERE summary_embedding IS NOT NULL;
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS knowledge.idx_projects_summary_embedding_hnsw;</sql>
+            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary_generated_at"/>
+            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary_embedding"/>
+            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary"/>
+        </rollback>
+    </changeSet>
 </databaseChangeLog>
 

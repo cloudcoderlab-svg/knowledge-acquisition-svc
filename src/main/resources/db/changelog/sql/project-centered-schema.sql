@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS knowledge.projects (
     description TEXT,
     definition TEXT,
     definition_embedding vector(768),
+    summary TEXT,
+    summary_embedding vector(768),
+    summary_generated_at TIMESTAMPTZ,
     source_bucket VARCHAR(255),
     gcs_prefix TEXT,
     status VARCHAR(50) DEFAULT 'DRAFT',
@@ -332,6 +335,11 @@ CREATE INDEX IF NOT EXISTS idx_projects_definition_embedding_hnsw
     ON knowledge.projects
     USING hnsw (definition_embedding vector_cosine_ops)
     WHERE definition_embedding IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_projects_summary_embedding_hnsw
+    ON knowledge.projects
+    USING hnsw (summary_embedding vector_cosine_ops)
+    WHERE summary_embedding IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_source_chunks_embedding_hnsw
     ON knowledge.knowledge_source_chunks
