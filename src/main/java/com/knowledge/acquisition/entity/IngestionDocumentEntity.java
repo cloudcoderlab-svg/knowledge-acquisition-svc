@@ -25,10 +25,10 @@ public class IngestionDocumentEntity {
   @Column(name = "source_document_id")
   private UUID sourceDocumentId;
 
-  @Column(name = "document_name", length = 500)
+  @Column(name = "document_name", columnDefinition = "text")
   private String documentName;
 
-  @Column(name = "document_type", length = 100)
+  @Column(name = "document_type", columnDefinition = "text")
   private String documentType;
 
   @Column(name = "summary", columnDefinition = "text")
@@ -44,7 +44,7 @@ public class IngestionDocumentEntity {
   @Column(name = "chunk_count")
   private Integer chunkCount;
 
-  @Column(name = "extraction_status", length = 50)
+  @Column(name = "extraction_status", columnDefinition = "text")
   private String extractionStatus;
 
   @Column(name = "error_message", columnDefinition = "text")

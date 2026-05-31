@@ -23,16 +23,16 @@ public class ResourceEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "resource_name", nullable = false, length = 500)
+  @Column(name = "resource_name", nullable = false, columnDefinition = "text")
   private String resourceName;
 
-  @Column(name = "resource_type", length = 100)
+  @Column(name = "resource_type", columnDefinition = "text")
   private String resourceType;
 
-  @Column(name = "provider", length = 100)
+  @Column(name = "provider", columnDefinition = "text")
   private String provider;
 
-  @Column(name = "environment", length = 50)
+  @Column(name = "environment", columnDefinition = "text")
   private String environment;
 
   @JdbcTypeCode(SqlTypes.JSON)

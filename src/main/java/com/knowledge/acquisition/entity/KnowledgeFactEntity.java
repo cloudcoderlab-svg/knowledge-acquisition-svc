@@ -32,13 +32,13 @@ public class KnowledgeFactEntity {
   @Column(name = "root_fact_id")
   private UUID rootFactId;
 
-  @Column(name = "fact_type", nullable = false, length = 100)
+  @Column(name = "fact_type", nullable = false, columnDefinition = "text")
   private String factType;
 
-  @Column(name = "fact_key", length = 255)
+  @Column(name = "fact_key", columnDefinition = "text")
   private String factKey;
 
-  @Column(name = "title", nullable = false, length = 500)
+  @Column(name = "title", nullable = false, columnDefinition = "text")
   private String title;
 
   @Column(name = "summary", columnDefinition = "text")
@@ -47,10 +47,10 @@ public class KnowledgeFactEntity {
   @Column(name = "content", columnDefinition = "text")
   private String content;
 
-  @Column(name = "priority", length = 50)
+  @Column(name = "priority", columnDefinition = "text")
   private String priority;
 
-  @Column(name = "source_entity_type", length = 100)
+  @Column(name = "source_entity_type", columnDefinition = "text")
   private String sourceEntityType;
 
   @Column(name = "source_entity_id")

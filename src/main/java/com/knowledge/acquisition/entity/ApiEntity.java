@@ -29,16 +29,16 @@ public class ApiEntity {
   @Column(name = "component_id")
   private UUID componentId;
 
-  @Column(name = "api_name", nullable = false, length = 500)
+  @Column(name = "api_name", nullable = false, columnDefinition = "text")
   private String apiName;
 
-  @Column(name = "api_type", length = 100)
+  @Column(name = "api_type", columnDefinition = "text")
   private String apiType;
 
   @Column(name = "endpoint_path", columnDefinition = "text")
   private String endpointPath;
 
-  @Column(name = "http_method", length = 10)
+  @Column(name = "http_method", columnDefinition = "text")
   private String httpMethod;
 
   @JdbcTypeCode(SqlTypes.JSON)

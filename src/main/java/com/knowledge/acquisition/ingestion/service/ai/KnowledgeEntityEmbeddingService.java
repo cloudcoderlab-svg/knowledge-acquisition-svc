@@ -1,8 +1,7 @@
 package com.knowledge.acquisition.ingestion.service.ai;
 
-import java.util.List;
-
 import com.knowledge.acquisition.dto.*;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

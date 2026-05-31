@@ -29,10 +29,10 @@ public class BusinessRuleEntity {
   @Column(name = "component_id")
   private UUID componentId;
 
-  @Column(name = "rule_name", nullable = false, length = 500)
+  @Column(name = "rule_name", nullable = false, columnDefinition = "text")
   private String ruleName;
 
-  @Column(name = "rule_type", length = 100)
+  @Column(name = "rule_type", columnDefinition = "text")
   private String ruleType;
 
   @Column(name = "condition_text", columnDefinition = "text")
@@ -47,7 +47,7 @@ public class BusinessRuleEntity {
   @Column(name = "validation_criteria", columnDefinition = "text")
   private String validationCriteria;
 
-  @Column(name = "priority", length = 50)
+  @Column(name = "priority", columnDefinition = "text")
   private String priority;
 
   @Column(name = "confidence")

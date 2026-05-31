@@ -167,5 +167,18 @@
             <dropColumn schemaName="knowledge" tableName="projects" columnName="summary"/>
         </rollback>
     </changeSet>
+
+    <changeSet id="fix-text-columns-and-constraints-v1" author="kengine">
+        <validCheckSum>ANY</validCheckSum>
+        <sqlFile
+            path="db/changelog/sql/fix-text-columns-and-constraints.sql"
+            relativeToChangelogFile="false"
+            splitStatements="true"
+            stripComments="false"/>
+        <rollback>
+            <!-- Rollback would require converting TEXT columns back to VARCHAR with appropriate sizes -->
+            <comment>Manual rollback required if needed - convert TEXT columns back to VARCHAR</comment>
+        </rollback>
+    </changeSet>
 </databaseChangeLog>
 

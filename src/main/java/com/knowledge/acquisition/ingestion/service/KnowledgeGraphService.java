@@ -304,6 +304,23 @@ public class KnowledgeGraphService {
    * <p>LLM extraction can return useful field descriptions without stable field names. The fallback
    * sequence preserves real names when present, uses descriptions when available, and finally
    * generates a deterministic placeholder that satisfies persistence constraints.
+   *
+   * <p>For each data model:
+   *
+   * <ol>
+   *   <li>Generates and sets vector embedding for semantic search
+   *   <li>Saves the data model entity and obtains the generated model ID
+   *   <li>For each field in the data model:
+   *       <ul>
+   *         <li>Inherits projectId from parent data model (required for DB constraint)
+   *         <li>Associates field with parent model via dataModelId
+   *         <li>Applies intelligent fallback logic for field name (name → description → generated)
+   *         <li>Sets default field type if not provided by LLM
+   *         <li>Persists the field to the database
+   *       </ul>
+   * </ol>
+   *
+   * @param dataModels list of data models to save, including their nested fields
    */
   private void saveDataModels(List<KnowledgeDataModel> dataModels) {
     for (KnowledgeDataModel dataModel : dataModels) {
@@ -315,6 +332,8 @@ public class KnowledgeGraphService {
             .getFields()
             .forEach(
                 field -> {
+                  // Inherit projectId from parent data model to satisfy NOT NULL constraint
+                  field.setProjectId(dataModel.getProjectId());
                   field.setDataModelId(dataModelId);
                   field.setFieldName(
                       bounded(
@@ -366,6 +385,25 @@ public class KnowledgeGraphService {
         storageService::saveKnowledgeIntegration);
   }
 
+  /**
+   * Persists workflows and their associated steps to the database.
+   *
+   * <p>This method performs the following operations for each workflow:
+   *
+   * <ol>
+   *   <li>Generates and sets vector embedding for semantic search
+   *   <li>Saves the workflow entity and obtains the generated workflow ID
+   *   <li>For each step in the workflow:
+   *       <ul>
+   *         <li>Inherits projectId from parent workflow (required for DB constraint)
+   *         <li>Associates step with parent workflow via workflowId
+   *         <li>Generates vector embedding for the step
+   *         <li>Persists the step to the database
+   *       </ul>
+   * </ol>
+   *
+   * @param workflows list of workflows to save, including their nested steps
+   */
   private void saveWorkflows(List<KnowledgeWorkflow> workflows) {
     for (KnowledgeWorkflow workflow : workflows) {
       workflow.setEmbedding(embeddingService.embedWorkflow(workflow));
@@ -375,6 +413,8 @@ public class KnowledgeGraphService {
             .getSteps()
             .forEach(
                 step -> {
+                  // Inherit projectId from parent workflow to satisfy NOT NULL constraint
+                  step.setProjectId(workflow.getProjectId());
                   step.setWorkflowId(workflowId);
                   step.setEmbedding(embeddingService.embedWorkflowStep(step));
                   storageService.saveKnowledgeWorkflowStep(step);

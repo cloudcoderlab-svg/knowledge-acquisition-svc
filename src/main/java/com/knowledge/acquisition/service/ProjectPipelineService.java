@@ -26,6 +26,7 @@ public class ProjectPipelineService {
   private final ProcessingService processingService;
   private final ProcessTrackingRepository processRepository;
   private final Executor projectPipelineExecutor;
+  private final GcsProjectFileService gcsProjectFileService;
 
   @Value("${knowledge-engine.project-pipeline.poll-ms:1000}")
   private long pollMs;
@@ -34,23 +35,30 @@ public class ProjectPipelineService {
       ProjectService projectService,
       ProcessingService processingService,
       ProcessTrackingRepository processRepository,
-      @Qualifier("projectPipelineExecutor") Executor projectPipelineExecutor) {
+      @Qualifier("projectPipelineExecutor") Executor projectPipelineExecutor,
+      GcsProjectFileService gcsProjectFileService) {
     this.projectService = projectService;
     this.processingService = processingService;
     this.processRepository = processRepository;
     this.projectPipelineExecutor = projectPipelineExecutor;
+    this.gcsProjectFileService = gcsProjectFileService;
   }
 
   public ProcessResponse startProjectPipeline(UUID projectId) {
     ProjectEntity project = projectService.find(projectId);
     log.info("Starting project pipeline for project {} ({})", project.getProjectName(), projectId);
+
+    // Get actual file count from GCS
+    int totalFiles = gcsProjectFileService.listFiles(projectId).size();
+    log.info("Found {} files in project {}", totalFiles, projectId);
+
     ProcessTrackingEntity process =
         processRepository.save(
             ProcessTrackingEntity.builder()
                 .projectId(projectId)
                 .processType("PROJECT_PIPELINE")
                 .status("RUNNING")
-                .totalFiles(4)
+                .totalFiles(totalFiles)
                 .processedFiles(0)
                 .failedFiles(0)
                 .currentFile("queued")
@@ -71,59 +79,69 @@ public class ProjectPipelineService {
     try {
       updateProcess(processId, process -> process.setCurrentFile("ingestion"));
       ProcessTrackingEntity ingestion =
-          waitForTerminal(processingService.startIngestion(projectId).processId());
+          waitForTerminalAndSyncProgress(
+              processId, processingService.startIngestion(projectId).processId());
       if (!isUsable(ingestion)) {
-        failPipeline(processId, "ingestion", ingestion, completedStages, failedStages + 1);
+        failPipeline(
+            processId, "ingestion", ingestion, ingestion.getProcessedFiles(), failedStages + 1);
         return;
       }
       completedStages++;
       failedStages += "PARTIAL_SUCCESS".equals(ingestion.getStatus()) ? 1 : 0;
-      updateProgress(processId, completedStages, failedStages, "consolidation");
+      updateProgress(processId, ingestion.getProcessedFiles(), failedStages, "consolidation");
 
       ProcessResponse consolidation = processingService.startConsolidation(projectId);
       if (!isUsable(consolidation)) {
-        failPipeline(processId, "consolidation", consolidation, completedStages, failedStages + 1);
+        failPipeline(
+            processId,
+            "consolidation",
+            consolidation,
+            ingestion.getProcessedFiles(),
+            failedStages + 1);
         return;
       }
       completedStages++;
-      updateProgress(processId, completedStages, failedStages, "planning");
+      updateProgress(processId, ingestion.getProcessedFiles(), failedStages, "planning");
 
       ProcessResponse planning = processingService.startPlanning(projectId);
       if (!isUsable(planning)) {
-        failPipeline(processId, "planning", planning, completedStages, failedStages + 1);
+        failPipeline(
+            processId, "planning", planning, ingestion.getProcessedFiles(), failedStages + 1);
         return;
       }
       completedStages++;
-      updateProgress(processId, completedStages, failedStages, "project-summary");
+      updateProgress(processId, ingestion.getProcessedFiles(), failedStages, "project-summary");
 
       ProcessResponse projectSummary = processingService.startProjectSummary(projectId);
       if (!isUsable(projectSummary)) {
         failPipeline(
-            processId, "project-summary", projectSummary, completedStages, failedStages + 1);
+            processId,
+            "project-summary",
+            projectSummary,
+            ingestion.getProcessedFiles(),
+            failedStages + 1);
         return;
       }
       completedStages++;
 
-      int finalCompletedStages = completedStages;
-      int finalFailedStages = failedStages;
+      int finalProcessedFiles = ingestion.getProcessedFiles();
+      int finalFailedFiles = ingestion.getFailedFiles() + failedStages;
       updateProcess(
           processId,
           process -> {
-            process.setProcessedFiles(finalCompletedStages);
-            process.setFailedFiles(finalFailedStages);
+            process.setProcessedFiles(finalProcessedFiles);
+            process.setFailedFiles(finalFailedFiles);
             process.setCurrentFile(null);
-            process.setStatus(finalFailedStages == 0 ? "COMPLETED" : "PARTIAL_SUCCESS");
+            process.setStatus(finalFailedFiles == 0 ? "COMPLETED" : "PARTIAL_SUCCESS");
             process.setCompletedAt(OffsetDateTime.now());
           });
     } catch (Exception e) {
       log.error("Project pipeline failed for project {}", projectId, e);
-      int finalCompletedStages = completedStages;
       int finalFailedStages = Math.max(1, failedStages);
       updateProcess(
           processId,
           process -> {
-            process.setProcessedFiles(finalCompletedStages);
-            process.setFailedFiles(finalFailedStages);
+            process.setFailedFiles(process.getFailedFiles() + finalFailedStages);
             process.setStatus("FAILED");
             process.setFailureCause(shortMessage(e));
             process.setCompletedAt(OffsetDateTime.now());
@@ -139,6 +157,29 @@ public class ProjectPipelineService {
               .orElseThrow(() -> new IllegalStateException("Process not found: " + childProcessId));
       if (TERMINAL_STATUSES.contains(process.getStatus())) {
         return process;
+      }
+      Thread.sleep(Math.max(100, pollMs));
+    }
+  }
+
+  private ProcessTrackingEntity waitForTerminalAndSyncProgress(
+      UUID pipelineProcessId, UUID childProcessId) throws InterruptedException {
+    while (true) {
+      ProcessTrackingEntity childProcess =
+          processRepository
+              .findById(childProcessId)
+              .orElseThrow(() -> new IllegalStateException("Process not found: " + childProcessId));
+
+      // Sync progress from child process to pipeline
+      updateProcess(
+          pipelineProcessId,
+          pipelineProcess -> {
+            pipelineProcess.setProcessedFiles(childProcess.getProcessedFiles());
+            pipelineProcess.setFailedFiles(childProcess.getFailedFiles());
+          });
+
+      if (TERMINAL_STATUSES.contains(childProcess.getStatus())) {
+        return childProcess;
       }
       Thread.sleep(Math.max(100, pollMs));
     }

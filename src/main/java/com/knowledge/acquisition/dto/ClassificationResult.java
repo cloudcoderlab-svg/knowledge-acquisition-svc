@@ -21,4 +21,5 @@ public class ClassificationResult {
   private Double confidence;
   private String summary;
   private UUID sourceDocumentId; // Added for tracking ingested documents
+  private Long tokensConsumed; // AI model tokens consumed for this classification
 }

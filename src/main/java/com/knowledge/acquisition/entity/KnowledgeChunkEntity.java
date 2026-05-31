@@ -23,10 +23,10 @@ public class KnowledgeChunkEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "chunk_type", length = 100)
+  @Column(name = "chunk_type", columnDefinition = "text")
   private String chunkType;
 
-  @Column(name = "entity_type", length = 100)
+  @Column(name = "entity_type", columnDefinition = "text")
   private String entityType;
 
   @Column(name = "entity_id")

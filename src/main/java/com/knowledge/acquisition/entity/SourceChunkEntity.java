@@ -48,7 +48,7 @@ public class SourceChunkEntity {
   @Type(VectorType.class)
   private String embedding;
 
-  @Column(name = "embedding_status", length = 50)
+  @Column(name = "embedding_status", columnDefinition = "text")
   private String embeddingStatus;
 
   @JdbcTypeCode(SqlTypes.JSON)

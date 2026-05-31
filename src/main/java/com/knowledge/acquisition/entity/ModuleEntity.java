@@ -29,10 +29,10 @@ public class ModuleEntity {
   @Column(name = "subdomain_id")
   private UUID subdomainId;
 
-  @Column(name = "module_name", nullable = false, length = 500)
+  @Column(name = "module_name", nullable = false, columnDefinition = "text")
   private String moduleName;
 
-  @Column(name = "module_type", length = 100)
+  @Column(name = "module_type", columnDefinition = "text")
   private String moduleType;
 
   @Column(name = "knowledge", columnDefinition = "text")
@@ -41,13 +41,13 @@ public class ModuleEntity {
   @Column(name = "responsibility", columnDefinition = "text")
   private String responsibility;
 
-  @Column(name = "technology", length = 255)
+  @Column(name = "technology", columnDefinition = "text")
   private String technology;
 
-  @Column(name = "owner", length = 255)
+  @Column(name = "owner", columnDefinition = "text")
   private String owner;
 
-  @Column(name = "lifecycle", length = 50)
+  @Column(name = "lifecycle", columnDefinition = "text")
   private String lifecycle;
 
   @Column(name = "embedding")

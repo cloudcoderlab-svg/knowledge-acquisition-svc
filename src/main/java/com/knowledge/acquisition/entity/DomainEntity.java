@@ -23,7 +23,7 @@ public class DomainEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "domain_name", nullable = false, length = 500)
+  @Column(name = "domain_name", nullable = false, columnDefinition = "text")
   private String domainName;
 
   @Column(name = "knowledge", columnDefinition = "text")

@@ -111,6 +111,14 @@ public class KnowledgeIngestionService {
       throws Exception {
     PostgresStorageService.StartedDocument startedDocument = storageService.startDocument(source);
     try {
+      // Track total tokens consumed across all AI operations
+      long totalTokens = 0L;
+
+      // Add tokens from document parsing (multimodal extraction)
+      if (documentContent.getTokensConsumed() != null) {
+        totalTokens += documentContent.getTokensConsumed();
+      }
+
       DocumentKnowledge docKnowledge =
           documentLevelAnalysisService.analyze(documentContent, source, rawContent);
       KnowledgeExtractionResult deterministicKnowledge =
@@ -133,7 +141,14 @@ public class KnowledgeIngestionService {
       List<KnowledgeExtractionResult> allChunkKnowledge = new ArrayList<>();
       for (SemanticChunk chunk : chunks) {
         String content = chunk.getContent();
-        chunk.setClassification(classificationService.classify(content));
+        ClassificationResult classification = classificationService.classify(content);
+        chunk.setClassification(classification);
+
+        // Accumulate tokens from chunk classification
+        if (classification.getTokensConsumed() != null) {
+          totalTokens += classification.getTokensConsumed();
+        }
+
         chunk.setEmbedding(safeEmbedding(content, source.objectName()));
         KnowledgeExtractionResult chunkKnowledge =
             enhancedKnowledgeExtractionService.extract(content, docKnowledge);
@@ -149,6 +164,7 @@ public class KnowledgeIngestionService {
 
       ClassificationResult result = chunks.get(0).getClassification();
       result.setSourceDocumentId(startedDocument.sourceDocumentId());
+      result.setTokensConsumed(totalTokens);
       return result;
     } catch (Exception e) {
       storageService.failDocument(startedDocument.documentId(), e);

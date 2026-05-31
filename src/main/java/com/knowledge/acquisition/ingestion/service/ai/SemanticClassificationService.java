@@ -3,6 +3,7 @@ package com.knowledge.acquisition.ingestion.service.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.knowledge.acquisition.dto.AIResponse;
 import com.knowledge.acquisition.dto.ClassificationResult;
 import com.knowledge.acquisition.ingestion.util.JsonResponseUtils;
 import com.knowledge.acquisition.ingestion.util.PromptLoaderUtils;
@@ -24,13 +25,18 @@ public class SemanticClassificationService {
 
     String prompt = template.replace("{{CONTENT}}", content);
 
-    String response = vertexAIService.generate(prompt);
+    AIResponse aiResponse = vertexAIService.generate(prompt);
 
-    ObjectNode result = (ObjectNode) mapper.readTree(JsonResponseUtils.object(response));
+    ObjectNode result =
+        (ObjectNode) mapper.readTree(JsonResponseUtils.object(aiResponse.getContent()));
     normalizeTextField(result, "businessCapability");
     normalizeTextField(result, "technicalCapability");
 
-    return mapper.treeToValue(result, ClassificationResult.class);
+    ClassificationResult classificationResult =
+        mapper.treeToValue(result, ClassificationResult.class);
+    classificationResult.setTokensConsumed(aiResponse.getTotalTokens());
+
+    return classificationResult;
   }
 
   private void normalizeTextField(ObjectNode result, String fieldName) {

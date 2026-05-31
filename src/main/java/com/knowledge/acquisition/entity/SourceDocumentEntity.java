@@ -28,16 +28,16 @@ public class SourceDocumentEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "document_name", length = 500)
+  @Column(name = "document_name", columnDefinition = "text")
   private String documentName;
 
-  @Column(name = "document_type", length = 100)
+  @Column(name = "document_type", columnDefinition = "text")
   private String documentType;
 
   @Column(name = "gcs_url", columnDefinition = "text")
   private String gcsUrl;
 
-  @Column(name = "source_bucket", length = 255)
+  @Column(name = "source_bucket", columnDefinition = "text")
   private String sourceBucket;
 
   @Column(name = "source_object", columnDefinition = "text")
@@ -55,13 +55,13 @@ public class SourceDocumentEntity {
   @Column(name = "file_size")
   private Long fileSize;
 
-  @Column(name = "mime_type", length = 255)
+  @Column(name = "mime_type", columnDefinition = "text")
   private String mimeType;
 
-  @Column(name = "file_type", length = 100)
+  @Column(name = "file_type", columnDefinition = "text")
   private String fileType;
 
-  @Column(name = "title", length = 1000)
+  @Column(name = "title", columnDefinition = "text")
   private String title;
 
   @Column(name = "is_current")

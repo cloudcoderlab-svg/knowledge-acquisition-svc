@@ -32,13 +32,13 @@ public class ComponentEntity {
   @Column(name = "subdomain_id")
   private UUID subdomainId;
 
-  @Column(name = "component_name", nullable = false, length = 500)
+  @Column(name = "component_name", nullable = false, columnDefinition = "text")
   private String componentName;
 
-  @Column(name = "component_type", length = 100)
+  @Column(name = "component_type", columnDefinition = "text")
   private String componentType;
 
-  @Column(name = "category", length = 50)
+  @Column(name = "category", columnDefinition = "text")
   private String category;
 
   @Column(name = "knowledge", columnDefinition = "text")
@@ -47,10 +47,10 @@ public class ComponentEntity {
   @Column(name = "responsibility", columnDefinition = "text")
   private String responsibility;
 
-  @Column(name = "technology", length = 255)
+  @Column(name = "technology", columnDefinition = "text")
   private String technology;
 
-  @Column(name = "capability", length = 500)
+  @Column(name = "capability", columnDefinition = "text")
   private String capability;
 
   @Column(name = "embedding")

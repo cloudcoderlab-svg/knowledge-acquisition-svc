@@ -140,7 +140,8 @@ public class ProjectSummaryService {
         """
             + profileInput;
     try {
-      String summary = vertexAIService.generate(prompt);
+      com.knowledge.acquisition.dto.AIResponse aiResponse = vertexAIService.generate(prompt);
+      String summary = aiResponse.getContent();
       if (summary != null && !summary.isBlank()) {
         return summary.trim();
       }

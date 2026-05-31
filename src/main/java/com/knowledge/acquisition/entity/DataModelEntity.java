@@ -26,10 +26,10 @@ public class DataModelEntity {
   @Column(name = "module_id")
   private UUID moduleId;
 
-  @Column(name = "model_name", nullable = false, length = 500)
+  @Column(name = "model_name", nullable = false, columnDefinition = "text")
   private String modelName;
 
-  @Column(name = "model_type", length = 100)
+  @Column(name = "model_type", columnDefinition = "text")
   private String modelType;
 
   @JdbcTypeCode(SqlTypes.JSON)

@@ -10,6 +10,7 @@ import com.google.cloud.vertexai.generativeai.ContentMaker;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.PartMaker;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
+import com.knowledge.acquisition.dto.AIResponse;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -64,19 +65,39 @@ public class VertexAIService {
 
   @CircuitBreaker(name = "vertexai", fallbackMethod = "generateFallback")
   @Retry(name = "vertexai")
-  public String generate(String prompt) throws Exception {
+  public AIResponse generate(String prompt) throws Exception {
     log.debug("Calling Vertex AI for content generation");
     GenerateContentResponse response = classificationModel.generateContent(prompt);
-    return response.getCandidates(0).getContent().getParts(0).getText();
+    String content = response.getCandidates(0).getContent().getParts(0).getText();
+
+    // Extract token usage metadata
+    long totalTokens = 0;
+    long promptTokens = 0;
+    long responseTokens = 0;
+
+    if (response.hasUsageMetadata()) {
+      totalTokens = response.getUsageMetadata().getTotalTokenCount();
+      promptTokens = response.getUsageMetadata().getPromptTokenCount();
+      responseTokens = response.getUsageMetadata().getCandidatesTokenCount();
+      log.debug(
+          "Token usage - Total: {}, Prompt: {}, Response: {}",
+          totalTokens,
+          promptTokens,
+          responseTokens);
+    } else {
+      log.warn("No usage metadata available in Vertex AI response");
+    }
+
+    return AIResponse.of(content, totalTokens, promptTokens, responseTokens);
   }
 
-  private String generateFallback(String prompt, CallNotPermittedException ex) {
+  private AIResponse generateFallback(String prompt, CallNotPermittedException ex) {
     log.error("Circuit breaker is OPEN for Vertex AI generation. Service is unavailable.");
     throw new RuntimeException(
         "Vertex AI service is currently unavailable. Please try again later.", ex);
   }
 
-  private String generateFallback(String prompt, Exception ex) {
+  private AIResponse generateFallback(String prompt, Exception ex) {
     log.error("Failed to generate content with Vertex AI after retries", ex);
     throw new RuntimeException("Failed to generate content with Vertex AI", ex);
   }
@@ -88,21 +109,41 @@ public class VertexAIService {
    * @param prompt the text prompt
    * @param imageData the document/image binary data
    * @param mimeType the MIME type of the data (e.g., "application/pdf", "image/png")
-   * @return the generated response text
+   * @return AIResponse with the generated text and token usage
    */
   @CircuitBreaker(name = "vertexai", fallbackMethod = "generateWithImageFallback")
   @Retry(name = "vertexai")
-  public String generateWithImage(String prompt, byte[] imageData, String mimeType)
+  public AIResponse generateWithImage(String prompt, byte[] imageData, String mimeType)
       throws Exception {
     log.debug("Calling Vertex AI for multimodal content generation");
     Content content =
         ContentMaker.fromMultiModalData(prompt, PartMaker.fromMimeTypeAndData(mimeType, imageData));
 
     GenerateContentResponse response = classificationModel.generateContent(content);
-    return ResponseHandler.getText(response);
+    String generatedText = ResponseHandler.getText(response);
+
+    // Extract token usage metadata
+    long totalTokens = 0;
+    long promptTokens = 0;
+    long responseTokens = 0;
+
+    if (response.hasUsageMetadata()) {
+      totalTokens = response.getUsageMetadata().getTotalTokenCount();
+      promptTokens = response.getUsageMetadata().getPromptTokenCount();
+      responseTokens = response.getUsageMetadata().getCandidatesTokenCount();
+      log.debug(
+          "Multimodal token usage - Total: {}, Prompt: {}, Response: {}",
+          totalTokens,
+          promptTokens,
+          responseTokens);
+    } else {
+      log.warn("No usage metadata available in Vertex AI multimodal response");
+    }
+
+    return AIResponse.of(generatedText, totalTokens, promptTokens, responseTokens);
   }
 
-  private String generateWithImageFallback(
+  private AIResponse generateWithImageFallback(
       String prompt, byte[] imageData, String mimeType, CallNotPermittedException ex) {
     log.error(
         "Circuit breaker is OPEN for Vertex AI multimodal generation. Service is unavailable.");
@@ -110,7 +151,7 @@ public class VertexAIService {
         "Vertex AI multimodal service is currently unavailable. Please try again later.", ex);
   }
 
-  private String generateWithImageFallback(
+  private AIResponse generateWithImageFallback(
       String prompt, byte[] imageData, String mimeType, Exception ex) {
     log.error("Failed to generate multimodal content with Vertex AI after retries", ex);
     throw new RuntimeException("Failed to generate multimodal content with Vertex AI", ex);

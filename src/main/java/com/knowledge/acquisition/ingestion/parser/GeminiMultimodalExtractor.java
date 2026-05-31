@@ -2,6 +2,7 @@ package com.knowledge.acquisition.ingestion.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knowledge.acquisition.dto.AIResponse;
 import com.knowledge.acquisition.dto.DiagramContent;
 import com.knowledge.acquisition.dto.DocumentContent;
 import com.knowledge.acquisition.dto.TableContent;
@@ -80,11 +81,11 @@ public class GeminiMultimodalExtractor implements DocumentContentExtractor {
     String mimeType = getMimeType(fileType);
 
     // Call Gemini with image/document analysis
-    String jsonResponse =
+    AIResponse aiResponse =
         vertexAIService.generateWithImage(EXTRACTION_PROMPT, documentData, mimeType);
 
     // Parse the JSON response
-    return parseGeminiResponse(jsonResponse, documentData);
+    return parseGeminiResponse(aiResponse.getContent(), documentData, aiResponse.getTotalTokens());
   }
 
   private byte[] readInputStream(InputStream inputStream) throws Exception {
@@ -115,8 +116,8 @@ public class GeminiMultimodalExtractor implements DocumentContentExtractor {
     };
   }
 
-  private DocumentContent parseGeminiResponse(String jsonResponse, byte[] documentData)
-      throws Exception {
+  private DocumentContent parseGeminiResponse(
+      String jsonResponse, byte[] documentData, long tokensConsumed) throws Exception {
     try {
       // Clean the response if it's wrapped in markdown code blocks
       String cleanedJson = jsonResponse.trim();
@@ -186,6 +187,7 @@ public class GeminiMultimodalExtractor implements DocumentContentExtractor {
           .diagrams(diagrams)
           .tables(tables)
           .metadata(new HashMap<>())
+          .tokensConsumed(tokensConsumed)
           .build();
 
     } catch (Exception e) {
@@ -196,6 +198,7 @@ public class GeminiMultimodalExtractor implements DocumentContentExtractor {
           .diagrams(new ArrayList<>())
           .tables(new ArrayList<>())
           .metadata(new HashMap<>())
+          .tokensConsumed(tokensConsumed)
           .build();
     }
   }

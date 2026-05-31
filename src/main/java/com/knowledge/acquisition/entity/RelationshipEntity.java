@@ -23,25 +23,25 @@ public class RelationshipEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "source_entity_type", nullable = false, length = 100)
+  @Column(name = "source_entity_type", nullable = false, columnDefinition = "text")
   private String sourceEntityType;
 
   @Column(name = "source_entity_id")
   private UUID sourceEntityId;
 
-  @Column(name = "source_name", length = 500)
+  @Column(name = "source_name", columnDefinition = "text")
   private String sourceName;
 
-  @Column(name = "target_entity_type", nullable = false, length = 100)
+  @Column(name = "target_entity_type", nullable = false, columnDefinition = "text")
   private String targetEntityType;
 
   @Column(name = "target_entity_id")
   private UUID targetEntityId;
 
-  @Column(name = "target_name", length = 500)
+  @Column(name = "target_name", columnDefinition = "text")
   private String targetName;
 
-  @Column(name = "relationship_type", nullable = false, length = 100)
+  @Column(name = "relationship_type", nullable = false, columnDefinition = "text")
   private String relationshipType;
 
   @Column(name = "relationship_definition", columnDefinition = "text")

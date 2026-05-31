@@ -114,10 +114,10 @@ public class EnhancedKnowledgeExtractionService {
 
       // Call Vertex AI
       log.debug("Calling Vertex AI for enhanced chunk extraction");
-      String response = vertexAIService.generate(prompt);
+      com.knowledge.acquisition.dto.AIResponse aiResponse = vertexAIService.generate(prompt);
 
       // Parse JSON response
-      String jsonResponse = JsonResponseUtils.object(response);
+      String jsonResponse = JsonResponseUtils.object(aiResponse.getContent());
       KnowledgeExtractionResult result = parseKnowledgeExtractionResponse(jsonResponse);
 
       log.debug(
@@ -202,8 +202,8 @@ public class EnhancedKnowledgeExtractionService {
     try {
       String template = promptLoaderUtils.load("prompt/knowledge-extraction-prompt.txt");
       String prompt = template.replace("{{CONTENT}}", content);
-      String response = vertexAIService.generate(prompt);
-      return parseKnowledgeExtractionResponse(JsonResponseUtils.object(response));
+      com.knowledge.acquisition.dto.AIResponse aiResponse = vertexAIService.generate(prompt);
+      return parseKnowledgeExtractionResponse(JsonResponseUtils.object(aiResponse.getContent()));
     } catch (Exception e) {
       log.error("Error in basic extraction fallback", e);
       return new KnowledgeExtractionResult();

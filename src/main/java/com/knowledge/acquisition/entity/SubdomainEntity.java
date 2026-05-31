@@ -26,7 +26,7 @@ public class SubdomainEntity {
   @Column(name = "domain_id", nullable = false)
   private UUID domainId;
 
-  @Column(name = "subdomain_name", nullable = false, length = 500)
+  @Column(name = "subdomain_name", nullable = false, columnDefinition = "text")
   private String subdomainName;
 
   @Column(name = "knowledge", columnDefinition = "text")

@@ -26,13 +26,13 @@ public class ProjectEntity {
   @Column(name = "project_id")
   private UUID projectId;
 
-  @Column(name = "project_name", nullable = false, length = 500)
+  @Column(name = "project_name", nullable = false, columnDefinition = "text")
   private String projectName;
 
   @Column(name = "version", nullable = false)
   private Integer version;
 
-  @Column(name = "title", length = 500)
+  @Column(name = "title", columnDefinition = "text")
   private String title;
 
   @Column(name = "description", columnDefinition = "text")
@@ -55,14 +55,14 @@ public class ProjectEntity {
   @Column(name = "summary_generated_at")
   private OffsetDateTime summaryGeneratedAt;
 
-  @Column(name = "source_bucket", length = 255)
+  @Column(name = "source_bucket", columnDefinition = "text")
   private String sourceBucket;
 
   @Column(name = "gcs_prefix", columnDefinition = "text")
   private String gcsPrefix;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", length = 50)
+  @Column(name = "status", columnDefinition = "text")
   private ProjectStatus status;
 
   @JdbcTypeCode(SqlTypes.JSON)

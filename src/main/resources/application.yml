@@ -5,12 +5,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents,process-monitoring
   endpoint:
     health:
       probes:
         enabled: true
       show-details: when-authorized
+    process-monitoring:
+      enabled: true
   health:
     circuitbreakers:
       enabled: true

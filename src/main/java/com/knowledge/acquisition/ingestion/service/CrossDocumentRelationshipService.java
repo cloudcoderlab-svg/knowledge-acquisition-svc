@@ -9,11 +9,10 @@ import com.knowledge.acquisition.ingestion.service.ai.VertexAIService;
 import com.knowledge.acquisition.ingestion.util.JsonResponseUtils;
 import com.knowledge.acquisition.ingestion.util.PromptLoaderUtils;
 import com.knowledge.acquisition.ingestion.util.StringUtils;
-import java.util.List;
-import java.util.UUID;
-
 import com.knowledge.acquisition.repository.IngestionDocumentRepository;
 import com.knowledge.acquisition.repository.RelationshipRepository;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -104,11 +103,12 @@ public class CrossDocumentRelationshipService {
               .replace("{{DOCUMENT_SUMMARIES}}", summaries(documents));
 
       // Send prompt to Vertex AI for relationship inference
-      String response = vertexAIService.generate(prompt);
+      com.knowledge.acquisition.dto.AIResponse aiResponse = vertexAIService.generate(prompt);
 
       // Parse AI response into structured relationship objects
       CrossDocumentAnalysisResult result =
-          mapper.readValue(JsonResponseUtils.object(response), CrossDocumentAnalysisResult.class);
+          mapper.readValue(
+              JsonResponseUtils.object(aiResponse.getContent()), CrossDocumentAnalysisResult.class);
 
       // Filter and persist relationships with sufficient confidence
       if (result.getCrossDocumentRelationships() != null) {

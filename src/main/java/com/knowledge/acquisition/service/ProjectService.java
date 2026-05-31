@@ -156,7 +156,8 @@ public class ProjectService {
 
   public ProjectDiscoveryResponse discover(ProjectDiscoveryRequest request) {
     int limit = request.limit() == null ? 10 : Math.min(Math.max(request.limit(), 1), 50);
-    String embedding = request.hasEmbedding() ? request.embedding() : definitionEmbedding(request.task());
+    String embedding =
+        request.hasEmbedding() ? request.embedding() : definitionEmbedding(request.task());
     if (embedding == null || embedding.isBlank()) {
       return new ProjectDiscoveryResponse(request.task(), List.of());
     }

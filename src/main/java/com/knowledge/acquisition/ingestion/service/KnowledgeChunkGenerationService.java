@@ -3,9 +3,8 @@ package com.knowledge.acquisition.ingestion.service;
 import com.knowledge.acquisition.entity.*;
 import com.knowledge.acquisition.ingestion.service.ai.EmbeddingService;
 import com.knowledge.acquisition.ingestion.util.EmbeddingUtils;
-import java.util.UUID;
-
 import com.knowledge.acquisition.repository.*;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

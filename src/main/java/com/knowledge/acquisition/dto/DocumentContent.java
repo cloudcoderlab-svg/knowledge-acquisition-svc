@@ -12,4 +12,5 @@ public class DocumentContent {
   private List<DiagramContent> diagrams;
   private List<TableContent> tables;
   private Map<String, Object> metadata;
+  private Long tokensConsumed; // AI model tokens consumed for this extraction
 }

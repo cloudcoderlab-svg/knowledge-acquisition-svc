@@ -21,13 +21,13 @@ public class IntegrationEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "source_system", length = 255)
+  @Column(name = "source_system", columnDefinition = "text")
   private String sourceSystem;
 
-  @Column(name = "target_system", length = 255)
+  @Column(name = "target_system", columnDefinition = "text")
   private String targetSystem;
 
-  @Column(name = "protocol", length = 100)
+  @Column(name = "protocol", columnDefinition = "text")
   private String protocol;
 
   @Column(name = "description", columnDefinition = "text")

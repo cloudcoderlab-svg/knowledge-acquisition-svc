@@ -26,7 +26,7 @@ public class WorkflowEntity {
   @Column(name = "module_id")
   private UUID moduleId;
 
-  @Column(name = "workflow_name", nullable = false, length = 500)
+  @Column(name = "workflow_name", nullable = false, columnDefinition = "text")
   private String workflowName;
 
   @Column(name = "trigger_text", columnDefinition = "text")
@@ -35,7 +35,7 @@ public class WorkflowEntity {
   @Column(name = "outcome_text", columnDefinition = "text")
   private String outcomeText;
 
-  @Column(name = "actor", length = 255)
+  @Column(name = "actor", columnDefinition = "text")
   private String actor;
 
   @Column(name = "confidence")

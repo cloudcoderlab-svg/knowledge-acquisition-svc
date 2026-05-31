@@ -136,7 +136,15 @@ public class IngestionProcessRunner {
     updateProcess(processId, process -> process.setCurrentFile(file));
     try {
       long fileSize = getFileSize(bucketName, file);
-      ingestionService.ingestFromGcs(bucketName, file);
+      com.knowledge.acquisition.dto.ClassificationResult result =
+          ingestionService.ingestFromGcs(bucketName, file);
+
+      // Accumulate tokens consumed for this file
+      if (result != null && result.getTokensConsumed() != null) {
+        totalTokens.addAndGet(result.getTokensConsumed());
+        log.debug("File {} consumed {} tokens", file, result.getTokensConsumed());
+      }
+
       totalBytes.addAndGet(fileSize);
       long currentBytes = totalBytes.get();
       long currentTokens = totalTokens.get();

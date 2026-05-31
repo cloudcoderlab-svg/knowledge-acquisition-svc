@@ -22,10 +22,10 @@ public class ProcessTrackingEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "process_type", length = 50)
+  @Column(name = "process_type", columnDefinition = "text")
   private String processType;
 
-  @Column(name = "status", nullable = false, length = 50)
+  @Column(name = "status", nullable = false, columnDefinition = "text")
   private String status;
 
   @Column(name = "total_files")

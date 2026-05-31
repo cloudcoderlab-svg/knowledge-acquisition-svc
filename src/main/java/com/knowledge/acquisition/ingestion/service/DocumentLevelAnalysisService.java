@@ -95,11 +95,12 @@ public class DocumentLevelAnalysisService {
 
       // Call Vertex AI with the full document
       log.debug("Calling Vertex AI for document-level analysis");
-      String response = vertexAIService.generate(prompt);
+      com.knowledge.acquisition.dto.AIResponse aiResponse = vertexAIService.generate(prompt);
 
       // Parse JSON response into DocumentKnowledge
       DocumentKnowledge knowledge =
-          mapper.readValue(JsonResponseUtils.object(response), DocumentKnowledge.class);
+          mapper.readValue(
+              JsonResponseUtils.object(aiResponse.getContent()), DocumentKnowledge.class);
 
       // Store detected platform for downstream use
       knowledge.setDetectedPlatform(platform.name());

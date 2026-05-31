@@ -222,10 +222,22 @@ public class PostgresStorageService {
         .getWorkflowId();
   }
 
+  /**
+   * Persists a workflow step to the database.
+   *
+   * <p>Converts the DTO to an entity and saves it to the knowledge_workflow_steps table. The
+   * projectId field must be set on the DTO before calling this method to satisfy the NOT NULL
+   * constraint in the database schema.
+   *
+   * @param step the workflow step DTO containing all step details including projectId
+   * @return the generated UUID of the saved workflow step
+   * @throws org.springframework.dao.DataIntegrityViolationException if projectId is null
+   */
   public UUID saveKnowledgeWorkflowStep(KnowledgeWorkflowStep step) {
     return workflowStepRepository
         .save(
             WorkflowStepEntity.builder()
+                .projectId(step.getProjectId()) // Required: NOT NULL constraint in DB
                 .workflowId(step.getWorkflowId())
                 .sequenceNumber(step.getSequenceNumber())
                 .actor(step.getActor())
@@ -251,10 +263,22 @@ public class PostgresStorageService {
         .getDataModelId();
   }
 
+  /**
+   * Persists a data field to the database.
+   *
+   * <p>Converts the DTO to an entity and saves it to the knowledge_data_fields table. The projectId
+   * field must be set on the DTO before calling this method to satisfy the NOT NULL constraint in
+   * the database schema.
+   *
+   * @param field the data field DTO containing all field details including projectId
+   * @return the generated UUID of the saved data field
+   * @throws org.springframework.dao.DataIntegrityViolationException if projectId is null
+   */
   public UUID saveKnowledgeDataField(KnowledgeDataField field) {
     return dataFieldRepository
         .save(
             DataFieldEntity.builder()
+                .projectId(field.getProjectId()) // Required: NOT NULL constraint in DB
                 .dataModelId(field.getDataModelId())
                 .fieldName(field.getFieldName())
                 .fieldType(field.getFieldType())
