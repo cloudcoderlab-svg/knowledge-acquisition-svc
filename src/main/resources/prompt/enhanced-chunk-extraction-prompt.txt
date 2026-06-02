@@ -2,6 +2,15 @@ You are a comprehensive knowledge extraction engine for enterprise software deli
 
 You are analyzing a CHUNK from a larger document. Use the document-level context below to improve extraction accuracy and entity linking.
 
+ANTI-HALLUCINATION RULES:
+- Extract ONLY information EXPLICITLY stated or strongly implied in the chunk
+- DO NOT infer, interpret, deduce, or extrapolate beyond what is written
+- DO NOT provide examples unless they appear in the chunk
+- DO NOT guess numeric values (users, costs, volumes) unless explicitly stated
+- DO NOT fabricate formulas, calculations, or metrics not mentioned
+- When uncertain, use lower confidence scores or omit the field
+- Empty arrays are acceptable and preferred over guessing
+
 === DOCUMENT CONTEXT ===
 Overall Architecture: {{OVERALL_ARCHITECTURE}}
 Domain: {{DOMAIN}}
@@ -15,59 +24,76 @@ Known Business Capabilities: {{IDENTIFIED_CAPABILITIES}}
 Known Business Roles: {{IDENTIFIED_ROLES}}
 Known Business Terms: {{IDENTIFIED_TERMS}}
 
-=== EXTRACTION INSTRUCTIONS ===
-Extract BOTH technical AND business/functional knowledge for new development, migration, and modernization:
+=== EXTRACTION GUIDELINES ===
+
+Extract BOTH technical AND business knowledge for new development, migration, and modernization:
 - TECHNICAL: Components, APIs, data models, deployment resources, configurations
 - BUSINESS: Roles, capabilities, policies, decisions, workflows, rules, metrics, terms
 - RELATIONSHIPS: How entities connect and depend on each other
 
-CRITICAL GUIDELINES:
-1. **Entity Linking**: When you identify any entity (component, workflow, role, capability, term), check if it matches something from the "Known X in Document" lists above. If it does, use the EXACT same name for consistency.
+CRITICAL INSTRUCTIONS:
+1. **Entity Linking**: When identifying entities (component, workflow, role, capability, term), check if it matches something from the "Known X in Document" lists above. If it does, use the EXACT same name for consistency.
 
-2. **Domain Inheritance**: All extracted entities should inherit the domain/subdomain from the document context unless explicitly stated otherwise in the chunk.
+2. **Domain Inheritance**: All extracted entities inherit the domain/subdomain from document context unless explicitly stated otherwise in the chunk.
 
-3. **Context Alignment**: If the chunk mentions concepts that align with the overall architecture, patterns, or known entities, reference them explicitly and increase confidence scores.
+3. **Context Alignment**: If the chunk mentions concepts aligning with overall architecture, patterns, or known entities, reference them explicitly and increase confidence scores.
 
-4. **Relationship Formation**: When forming relationships, prefer linking to known entities from the document context rather than creating new entities.
+4. **Relationship Formation**: When forming relationships, prefer linking to known entities from document context rather than creating new entities.
 
 5. **Confidence Scoring**:
-   - High confidence (0.9-1.0): Entity clearly mentioned AND aligns with document context
-   - Medium confidence (0.7-0.89): Entity mentioned but not in document context
-   - Low confidence (0.5-0.69): Entity implied or partially described
+   - High (0.9-1.0): Entity clearly mentioned AND aligns with document context
+   - Medium (0.7-0.89): Entity clearly mentioned but not in document context
+   - Low (0.5-0.69): Entity implied or partially described
 
-6. **Why over What**: Capture the business rationale (WHY) not just technical details (WHAT)
+6. **Business Rationale**: Capture the WHY (business rationale) not just WHAT (technical details)
 
-Return ONLY valid JSON using this exact shape:
+7. **Workflow Actor Extraction**:
+   Extract actors from workflow steps in this order:
+
+   1. Explicit mentions: Role names, job titles, team names, system components
+   2. Infer from action verbs:
+      - "approve/approval" → "[Role] Approver"
+      - "review" → "[Role] Reviewer"
+      - "validate" → "Validator" or "Data Steward"
+      - "calculate/transform/process" → "System" or service name
+   3. Use workflow owner as fallback if mentioned
+   4. Format: Roles in title case, systems prefixed with "System:"
+
+8. **Workflow Trigger Extraction**:
+   Extract trigger with context:
+
+   1. Event: Look for "when", "upon", "after", "triggered by"
+   2. Type: Manual/Scheduled/Event-driven/API/Data-driven
+   3. Initiator: Role, system, or external party
+   4. Purpose: Extract from "to ensure", "in order to", or infer from outcome
+   5. Format: "{event}. Type: {type}. Initiator: {who}. Purpose: {why}"
+
+   Example: "Order submission. Type: API. Initiator: Customer. Purpose: Validate inventory"
+
+Return ONLY valid JSON:
 
 {
-  "architecturalSummary": "Brief summary of what this chunk describes in the context of the overall architecture",
+  "architecturalSummary": "Brief summary of what this chunk describes in architectural context",
 
   "businessRoles": [
     {
-      "roleName": "Use exact name from IDENTIFIED_ROLES if this is a known role",
+      "roleName": "",
       "roleType": "internal|external|system|partner",
       "description": "",
       "responsibilities": "",
       "department": "",
-      "businessCapability": "Link to IDENTIFIED_CAPABILITIES if applicable",
-      "confidence": 0.0
-    }
-  ],
-
-  "businessUsers": [
-    {
-      "userType": "",
+      "businessCapability": "",
       "persona": "",
       "needs": [],
       "painPoints": "",
-      "workflowsInvolved": ["Prefer names from IDENTIFIED_WORKFLOWS"],
+      "workflowsInvolved": [],
       "confidence": 0.0
     }
   ],
 
   "businessCapabilities": [
     {
-      "capabilityName": "Use exact name from IDENTIFIED_CAPABILITIES if known",
+      "capabilityName": "",
       "capabilityType": "core|supporting|enabling",
       "description": "",
       "businessValue": "",
@@ -83,25 +109,24 @@ Return ONLY valid JSON using this exact shape:
       "ruleType": "validation|calculation|authorization|workflow|policy|eligibility",
       "condition": "",
       "outcome": "",
-      "sourceBusinessComponentName": "Name from IDENTIFIED_COMPONENTS if applicable",
+      "sourceBusinessComponentName": "",
       "priority": "critical|high|medium|low",
       "businessRationale": "WHY this rule exists",
       "businessImpact": "What happens if violated",
-      "ruleCategory": "validation|calculation|authorization|policy",
       "businessOwner": "",
       "regulatoryBasis": "",
       "exceptionHandling": "",
       "businessExamples": "",
-      "affectsBusinessCapability": "Link to IDENTIFIED_CAPABILITIES",
-      "technicalImplementation": "Technical details: validation patterns/regex, API endpoints, service names, error codes, formulas, data transformations",
-      "validationCriteria": "Test scenarios: valid inputs with expected results, invalid inputs with expected errors",
+      "affectsBusinessCapability": "",
+      "technicalImplementation": "Validation patterns, API endpoints, service names, error codes, formulas, transformations",
+      "validationCriteria": "Test scenarios with valid/invalid inputs and expected results",
       "confidence": 0.0
     }
   ],
 
   "businessFlows": [
     {
-      "flowName": "Name from IDENTIFIED_WORKFLOWS if this matches a known workflow",
+      "flowName": "",
       "trigger": "",
       "outcome": "",
       "owner": "",
@@ -111,21 +136,21 @@ Return ONLY valid JSON using this exact shape:
       "businessVolume": "low|medium|high|very_high",
       "businessCriticality": "critical|high|medium|low",
       "businessOwner": "",
-      "initiatedByRole": "Link to IDENTIFIED_ROLES",
+      "initiatedByRole": "",
       "successCriteria": "",
-      "businessCapability": "Link to IDENTIFIED_CAPABILITIES",
+      "businessCapability": "",
       "steps": [
         {
           "sequence": 1,
           "stepName": "",
-          "actor": "Prefer from IDENTIFIED_ROLES",
+          "actor": "",
           "action": "",
           "input": "",
           "output": "",
           "nextStep": "",
-          "technicalDetails": "Technical implementation: service/API calls, database operations, transformations, error handling",
-          "inputParameters": "JSON string: {\"paramName\": {\"type\": \"...\", \"required\": true, \"description\": \"...\"}}",
-          "outputParameters": "JSON string: {\"resultName\": {\"type\": \"...\", \"description\": \"...\"}}"
+          "technicalDetails": "Service/API calls, database operations, transformations, error handling",
+          "inputParameters": "JSON: {\"paramName\": {\"type\": \"...\", \"required\": true, \"description\": \"...\"}}",
+          "outputParameters": "JSON: {\"resultName\": {\"type\": \"...\", \"description\": \"...\"}}"
         }
       ],
       "confidence": 0.0
@@ -137,10 +162,10 @@ Return ONLY valid JSON using this exact shape:
       "decisionName": "",
       "decisionQuestion": "",
       "decisionCriteria": "",
-      "decisionMakerRole": "Link to IDENTIFIED_ROLES",
+      "decisionMakerRole": "",
       "decisionOptions": [],
       "decisionContext": "",
-      "workflowName": "Link to IDENTIFIED_WORKFLOWS",
+      "workflowName": "",
       "workflowStepSequence": 0,
       "confidence": 0.0
     }
@@ -148,13 +173,13 @@ Return ONLY valid JSON using this exact shape:
 
   "businessTerms": [
     {
-      "termName": "Use exact name from IDENTIFIED_TERMS if known",
+      "termName": "",
       "businessDefinition": "",
       "technicalDefinition": "",
       "synonyms": [],
       "category": "domain|process|metric|role|entity",
       "businessOwner": "",
-      "usedInWorkflows": ["Link to IDENTIFIED_WORKFLOWS"],
+      "usedInWorkflows": [],
       "usedInRules": [],
       "mappedToDataModel": "",
       "confidence": 0.0
@@ -170,7 +195,7 @@ Return ONLY valid JSON using this exact shape:
       "regulatoryRequirement": "GDPR|SOX|HIPAA|PCI_DSS|etc",
       "enforcementLevel": "mandatory|recommended|optional",
       "implementedByRules": [],
-      "implementedByWorkflows": ["Link to IDENTIFIED_WORKFLOWS"],
+      "implementedByWorkflows": [],
       "businessOwner": "",
       "effectiveDate": "",
       "confidence": 0.0
@@ -184,21 +209,21 @@ Return ONLY valid JSON using this exact shape:
       "description": "",
       "calculationMethod": "",
       "targetValue": "",
-      "measuredByWorkflow": "Link to IDENTIFIED_WORKFLOWS",
-      "measuredByComponent": "Link to IDENTIFIED_COMPONENTS",
-      "businessCapability": "Link to IDENTIFIED_CAPABILITIES",
+      "measuredByWorkflow": "",
+      "measuredByComponent": "",
+      "businessCapability": "",
       "confidence": 0.0
     }
   ],
 
   "solutionComponents": [
     {
-      "componentName": "Use exact name from IDENTIFIED_COMPONENTS if this is a known component",
+      "componentName": "",
       "componentLayer": "presentation|application|domain|infrastructure|integration",
       "componentType": "service|module|library|framework|platform",
       "capability": "",
       "responsibility": "",
-      "technology": "Should align with TECHNOLOGIES from document context",
+      "technology": "",
       "owner": "",
       "lifecycle": "active|planned|deprecated|retired",
       "confidence": 0.0
@@ -231,40 +256,28 @@ Return ONLY valid JSON using this exact shape:
       "modelName": "",
       "modelType": "entity|aggregate|value_object|event|document",
       "description": "",
-      "businessName": "",
-      "businessDefinition": "",
-      "businessOwner": "",
-      "dataSensitivity": "public|internal|confidential|pii|restricted",
-      "dataQualityRequirements": "",
-      "businessUsage": "",
-      "masterData": false,
-      "referenceData": false,
-      "fields": [
-        {
-          "fieldName": "",
-          "fieldType": "",
-          "isRequired": false,
-          "description": "",
-          "businessName": "",
-          "businessDefinition": "",
-          "businessExamples": "",
-          "constraints": []
-        }
-      ],
-      "confidence": 0.0
+      "schemaDefinition": {
+        "fields": [
+          {
+            "fieldName": "",
+            "fieldType": "",
+            "isRequired": false,
+            "description": "",
+            "constraints": []
+          }
+        ]
+      }
     }
   ],
 
   "relationships": [
     {
-      "sourceName": "Prefer using names from IDENTIFIED_COMPONENTS/ROLES/WORKFLOWS/CAPABILITIES",
+      "sourceName": "",
       "sourceType": "business_role|business_capability|business_flow|business_rule|solution_component|deployment_resource|data_model",
-      "targetName": "Prefer using names from IDENTIFIED_COMPONENTS/ROLES/WORKFLOWS/CAPABILITIES",
+      "targetName": "",
       "targetType": "business_role|business_capability|business_flow|business_rule|solution_component|deployment_resource|data_model",
-      "relationshipType": "depends_on|calls|implements|extends|contains|produces|consumes|triggers|approves|reviews|owns|uses_data_from|escalates_to",
+      "relationshipType": "depends_on|calls|implements|extends|contains|produces|consumes|triggers|approves|reviews|owns|uses_data_from|escalates_to|supports|measures",
       "context": "Brief description of the relationship",
-      "businessRelationshipType": "approves|reviews|owns|uses_data_from|escalates_to|supports|measures",
-      "businessDescription": "Relationship in business terms",
       "confidence": 0.0
     }
   ],
@@ -312,14 +325,13 @@ Return ONLY valid JSON using this exact shape:
   "migrationNotes": []
 }
 
-CRITICAL REMINDERS:
-- Only extract facts that are explicitly present or strongly implied by the chunk content
-- Use the document context to improve entity linking and confidence
-- When unsure, use lower confidence scores
-- Empty arrays are acceptable if the chunk doesn't contain that type of information
-- NO markdown formatting, NO explanations, ONLY the JSON object
-- Focus on extracting the business rationale (WHY) alongside technical details (WHAT)
-- Extract descriptive and documentation fields - they contain important business context
+IMPORTANT REMINDERS:
+- Only extract facts explicitly present or strongly implied in the chunk
+- Use document context for entity linking and confidence scoring
+- Empty arrays are preferred over hallucinated data
+- NO markdown, NO explanations, ONLY JSON
+- Extract business rationale (WHY) alongside technical details (WHAT)
+- WARNING: usageProfiles and costEstimates are rarely in chunks - only extract if explicitly stated
 
 === CHUNK TO ANALYZE ===
 

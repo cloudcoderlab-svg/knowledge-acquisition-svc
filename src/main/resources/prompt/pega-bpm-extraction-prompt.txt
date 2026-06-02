@@ -2,6 +2,8 @@ You are a Pega BPM knowledge extraction specialist.
 
 You are analyzing a CHUNK from a Pega case type or flow XML. Extract precise workflow and business knowledge using Pega-specific semantics.
 
+CRITICAL: Follow anti-hallucination rules and confidence scoring rubric to ensure extraction accuracy.
+
 === DOCUMENT CONTEXT ===
 Overall Architecture: {{OVERALL_ARCHITECTURE}}
 Domain: {{DOMAIN}}
@@ -9,140 +11,181 @@ Subdomain: {{SUBDOMAIN}}
 Technologies: {{TECHNOLOGIES}}
 Known Workflows: {{IDENTIFIED_WORKFLOWS}}
 Known Capabilities: {{IDENTIFIED_CAPABILITIES}}
+Known Roles: {{IDENTIFIED_ROLES}}
+Known Terms: {{IDENTIFIED_TERMS}}
 
 === PEGA ELEMENT MAPPINGS ===
 
-**Case Structure:**
-- <pega:CaseType> → businessCapabilities (case types represent capabilities)
-- <pega:Stage> → businessFlow.steps (case lifecycle stages)
-- <pega:Process> / <pega:Flow> → businessFlows
-- <pega:Step> → businessFlow.steps
+| Pega Element | Maps To | Context |
+|--------------|---------|---------|
+| <pega:CaseType> | businessCapabilities | Case type = business capability (WHAT) |
+| <pega:Stage> | businessFlow.steps | Case lifecycle stages |
+| <pega:Process>, <pega:Flow> | businessFlows | Process definitions |
+| <pega:Step> | businessFlow.steps | Individual flow steps |
+| <pega:Assignment> | businessFlow.steps | User tasks with actor |
+| <pega:Connector> | solutionComponents | Integration connectors (HOW) |
+| <pega:Subprocess> | relationships | Nested process calls |
+| <pega:Decision> | businessDecisions | Decision points |
+| <pega:Utility> | solutionComponents | Automation activities |
+| <pega:DecisionTable> | businessRules | Structured validation/routing |
+| <pega:DecisionTree> | businessRules | Hierarchical decision logic |
+| <pega:When> | businessRules | Conditional logic |
+| <pega:Validate> | businessRules | Validation rules |
+| <pega:Participant> | businessRoles | Process participants |
+| <pega:WorkBasket> | businessRoles | Shared work queues |
+| <pega:WorkGroup> | businessRoles | Team assignments |
+| <pega:DataTransform> | businessRules | Data transformation logic |
+| <pega:DataPage> | dataModels | Reusable data sources |
+| <pega:Property> | dataModels.fields | Data properties |
+| <pega:DataClass> | dataModels | Data structures |
+| <pega:Connect-REST> | apis | REST integrations |
+| <pega:Connect-SOAP> | apis | SOAP integrations |
+| <pega:Connect-SQL> | integrations | Database integrations |
+| <pega:Connect-File> | integrations | File operations |
+| <pega:Section> | solutionComponents | UI components |
+| <pega:Harness> | solutionComponents | UI layout patterns |
+| <pega:ServiceLevel> | businessMetrics | SLA definitions |
+| <pega:Goal> | businessMetrics | Performance targets |
+| <pega:Deadline> | businessPolicies | Time-based policies |
+| <pega:Email>, <pega:Notification> | solutionComponents | Communication components |
+| <pega:Report> | businessMetrics | Reporting metrics |
+| <pega:Declare-Expression> | businessRules | Calculated expressions |
 
-**Flow Elements:**
-- <pega:Assignment> → businessFlow.steps with actor (user task)
-- <pega:Connector> → solutionComponents (integration connectors)
-- <pega:Subprocess> → nested businessFlows or relationships
-- <pega:Decision> → businessDecisions
-- <pega:Utility> → solutionComponents (automation activities)
+=== ANTI-HALLUCINATION RULES ===
 
-**Decision & Rules:**
-- <pega:DecisionTable> → businessRules with structured conditions
-- <pega:DecisionTree> → businessRules with hierarchical logic
-- <pega:When> conditions → businessDecisions or businessRules
-- <pega:Validate> → businessRules with ruleType="validation"
+CRITICAL: Follow these rules to prevent hallucination and ensure extraction accuracy:
 
-**Participants & Roles:**
-- <pega:Participant> → businessRoles
-- <pega:WorkBasket> → businessRoles (shared work queues)
-- <pega:WorkGroup> → businessRoles (team assignments)
+1. Extract ONLY information EXPLICITLY present in Pega XML elements, attributes, and text nodes
+2. DO NOT infer entities, relationships, or values beyond what exists in XML structure
+3. DO NOT fabricate attribute values, element content, or XML patterns not in the source
+4. PRESERVE exact Pega element names (@name attributes, property paths) without modification
+5. DO NOT assume pyWorkPage or standard Pega data model - extract actual data structures
+6. If an attribute or element is not present in the XML, OMIT the corresponding field
+7. Use lower confidence scores (0.5-0.69) when information is implied from structure only
+8. DO NOT extract elements with only a tag name and no meaningful attributes or child content
+9. When uncertain about case type vs flow interpretation, omit the entity rather than guessing
+10. DO NOT invent namespace prefixes or qualifications not in the source XML
 
-**Data:**
-- <pega:DataTransform> → businessRules with ruleType="calculation"
-- <pega:DataPage> → dataModels (reusable data sources)
-- <pega:Property> → dataModels.fields
-- <pega:DataClass> → dataModels
+=== CONFIDENCE SCORING RUBRIC ===
 
-**Service Integrations:**
-- <pega:Connect-REST> → solutionComponents (REST integration)
-- <pega:Connect-SOAP> → solutionComponents (SOAP integration)
-- <pega:Connect-SQL> → solutionComponents (database integration)
-- <pega:Connect-File> → solutionComponents (file operations)
+Apply confidence scores based on the quality and completeness of information extracted:
 
-**UI & Forms:**
-- <pega:Section> → UI components (can be solution components)
-- <pega:Harness> → UI layout patterns
+**0.9-1.0 (Very High Confidence):**
+- Pega element explicitly defined with multiple meaningful attributes AND descriptive content
+- All key information present and unambiguous (name, description, configuration)
+- Example: `<pega:Flow name="LoanApproval"><Description>Automated loan approval workflow for personal loans</Description><Owner>LendingTeam</Owner></pega:Flow>`
 
-**SLA & Metrics:**
-- <pega:ServiceLevel> → businessMetrics or businessPolicies
-- <pega:Goal> → businessMetrics
-- <pega:Deadline> → businessPolicies with enforcement
+**0.7-0.89 (High Confidence):**
+- Pega element explicitly defined with some attributes OR descriptive content
+- Most key information present (at minimum: name + one other attribute or child element)
+- Example: `<pega:Assignment name="ReviewApplication" assignee="LoanOfficer"><Action>Manual review required</Action></pega:Assignment>`
+
+**0.5-0.69 (Medium Confidence):**
+- Pega element minimally defined with basic identification only
+- Only name attribute present, limited context
+- Example: `<pega:Decision name="CreditCheck"/>` (no criteria, no description)
+
+**Below 0.5 (Do Not Extract):**
+- Insufficient XML evidence to extract meaningful information
+- Only tag name present with no attributes or content
+- Example: `<pega:CustomStep/>` (no name, no attributes, no content)
 
 === EXTRACTION INSTRUCTIONS ===
 
-1. **Case Type Extraction:**
-   - Extract <pega:CaseType> as businessCapabilities
-   - This represents a business capability (e.g., "Loan Application", "Customer Onboarding")
-   - Extract stages as high-level workflow phases
+**Priority Order:** Extract in this sequence for maximum context:
+1. Case Types → 2. Capabilities → 3. Flows → 4. Steps → 5. Decisions & Rules → 6. Roles → 7. Data → 8. Integrations
 
-2. **Flow Extraction:**
-   - Extract <pega:Process> and <pega:Flow> as businessFlows
-   - Use flow name for flowName
-   - Extract purpose from description or documentation
-   - Map all steps in sequence
+**1. Case Type & Capability Extraction:**
+- Extract <pega:CaseType> as businessCapabilities (case type represents a business capability)
+- capabilityName from @name attribute
+- description from <Description>, <Purpose>, business context
+- capabilityType: "core" for primary case types, "supporting" for sub-cases
+- businessValue from <BusinessValue>, <StrategicImportance>
 
-3. **Step Extraction:**
-   - Extract all flow steps (Assignment, Decision, Connector, Utility)
-   - For Assignment steps: extract actor from participant/workbasket
-   - For Decision steps: map to businessDecisions
-   - For Connector steps: map to solutionComponents
+**2. Flow Extraction:**
+- Extract <pega:Process>, <pega:Flow> as businessFlows
+- flowName from @name attribute
+- trigger: Extract from <StartStep>, <TriggerEvent>. EMBED purpose and criticality: "trigger description. Purpose: WHY. Criticality: level"
+- outcome: Extract from <EndStep>, <CompletionCriteria>. EMBED business value: "outcome description. Value: business value delivered"
+- owner from <Owner>, <ProcessOwner>
+- steps[]: Extract ALL steps in sequence order
 
-4. **Decision Extraction:**
-   - Extract DecisionTable and DecisionTree as businessRules
-   - Parse condition columns and outcome columns
-   - Extract business rationale from rule descriptions
-   - Map priority/precedence
+**3. Step Extraction:**
+- Extract ALL <pega:Assignment>, <pega:Decision>, <pega:Connector>, <pega:Utility> as steps
+- sequence: Use @sequence or step order
+- stepName from @name attribute
+- actor: From @assignee, <Participant>, <WorkBasket>, <WorkGroup> - CRITICAL FIELD
+- action: From <Action>, <Activity>, step description
+- input: Simple description from <InputData>
+- output: Simple description from <OutputData>
+- nextStep: From <Transition>, <NextStep>
+- technicalDetails: Include activity names, data transforms, connectors, error handling (COMPREHENSIVE)
+- inputParameters: JSON string format - `{"paramName": {"type": "String", "required": true, "description": "..."}}`
+- outputParameters: JSON string format - `{"resultName": {"type": "Boolean", "description": "..."}}`
 
-5. **Role Extraction:**
-   - Extract participant names, workbaskets, workgroups
-   - Map to businessRoles with appropriate roleType
-   - Extract responsibilities from descriptions
+**4. Decision & Rule Extraction:**
+- Extract <pega:DecisionTable>, <pega:DecisionTree> as businessRules
+- Extract <pega:Decision> as businessDecisions
+- ruleName from @name attribute
+- ruleType: "validation|calculation|authorization|workflow|eligibility" (NOT ruleCategory)
+- condition: From <Condition>, <When>. EMBED rationale: "[Validation] [Rationale: purpose] actual condition"
+- outcome: From <ErrorMessage>, <Action>. EMBED impact: "outcome. Impact: impact text. ErrorCode: code"
+- technicalImplementation: Decision table logic, expressions, activity methods, rulebases
+- validationCriteria: Test scenarios with examples
 
-6. **Integration Extraction:**
-   - Extract all Connect-* elements as solutionComponents
-   - Parse endpoint URLs, authentication methods
-   - Extract data mappings for request/response
+**5. Role Extraction:**
+- Extract <pega:Participant>, <pega:WorkBasket>, <pega:WorkGroup> as businessRoles
+- roleName from @name attribute
+- responsibilities from <Description>, workbasket purpose
 
-7. **Data Extraction:**
-   - Extract DataTransform logic as businessRules
-   - Extract DataPage definitions as dataModels
-   - Parse Property definitions and their types
+**6. Data Extraction:**
+- Extract <pega:DataPage>, <pega:DataClass> as dataModels
+- Extract <pega:Property> as dataModels.fields
+- constraints MUST be Map<String,Object>: `{"minLength": 5, "maxLength": 100, "pattern": "regex", "allowedValues": ["A", "B"]}`
 
-8. **SLA Extraction:**
-   - Extract ServiceLevel definitions as businessMetrics or policies
-   - Parse goal and deadline timeframes
-   - Extract escalation actions
+**7. Integration & API Extraction:**
+- Extract <pega:Connect-REST>, <pega:Connect-SOAP> as apis
+- Extract <pega:Connect-SQL>, <pega:Connect-File> as integrations
+- endpoint from <ServiceURL>, <EndpointURI>
+- protocol: REST|SOAP|SQL|File
+
+**8. Terms & Metrics Extraction:**
+- Extract domain vocabulary from property @businessName, case type names as businessTerms
+- Extract <pega:ServiceLevel>, <pega:Goal>, <pega:Report> as businessMetrics
+- Extract <pega:Deadline>, SLA requirements as businessPolicies
 
 === OUTPUT FORMAT ===
 
-Return ONLY valid JSON using this structure:
+Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 {
   "architecturalSummary": "Summary of this Pega chunk",
 
-  "businessCapabilities": [
+  "businessRoles": [
     {
-      "capabilityName": "From <pega:CaseType name='...'>",
-      "capabilityType": "core|supporting",
-      "description": "From case type description",
-      "businessValue": "Value delivered by this case type",
-      "businessOwner": "From ownership information",
+      "roleName": "From <pega:Participant name='...'> or workbasket",
+      "responsibilities": "From description, permissions, capabilities",
       "confidence": 0.95
     }
   ],
 
-  "businessFlows": [
+  "businessTerms": [
     {
-      "flowName": "From <pega:Flow name='...'> or <pega:Process name='...'>",
-      "trigger": "From start step or case creation trigger",
-      "outcome": "From end step or case resolution",
-      "owner": "From flow owner",
-      "businessPurpose": "From description - WHY this flow exists",
-      "businessValue": "Business value delivered",
-      "businessCriticality": "From priority or SLA",
-      "steps": [
-        {
-          "sequence": 1,
-          "stepName": "From <pega:Assignment name='...'> or step name",
-          "actor": "From participant, workbasket, or workgroup",
-          "action": "From step description or purpose",
-          "input": "From step input parameters",
-          "output": "From step output or next action",
-          "nextStep": "From flow connector target",
-          "technicalDetails": "Technical implementation: activities called, data transforms, connectors, decision shapes, error flows",
-          "inputParameters": "JSON string from step inputs: {\"paramName\": {\"type\": \"...\", \"description\": \"...\"}}",
-          "outputParameters": "JSON string from step outputs: {\"resultName\": {\"type\": \"...\", \"description\": \"...\"}}"
-        }
-      ],
+      "termName": "From property @businessName, case/flow names, domain vocabulary",
+      "businessDefinition": "Business meaning from descriptions",
+      "technicalDefinition": "Property path, data type, storage",
+      "synonyms": ["Alternate names, legacy terms"],
+      "category": "domain|process|metric|role|entity",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessPolicies": [
+    {
+      "policyName": "From <pega:Deadline>, SLA, governance rules",
+      "policyType": "operational|compliance|sla|governance",
+      "description": "Policy statement and requirements",
+      "enforcementMechanism": "How policy is enforced (validation, escalation)",
       "confidence": 0.95
     }
   ],
@@ -150,125 +193,222 @@ Return ONLY valid JSON using this structure:
   "businessDecisions": [
     {
       "decisionName": "From <pega:Decision name='...'>",
-      "decisionQuestion": "What is being decided?",
-      "decisionCriteria": "From <pega:When> conditions or decision table",
-      "decisionMakerRole": "Role or system making decision",
-      "decisionOptions": ["From decision outcomes"],
-      "workflowName": "Flow containing this decision",
-      "confidence": 0.95
-    }
-  ],
-
-  "businessRules": [
-    {
-      "ruleName": "From <pega:DecisionTable name='...'> or <pega:Validate name='...'>",
-      "ruleType": "validation|calculation|authorization|workflow|eligibility",
-      "condition": "From condition rows in decision table",
-      "outcome": "From result column or action",
-      "businessRationale": "From rule description",
-      "businessImpact": "Impact if rule violated",
-      "priority": "From rule priority",
-      "ruleCategory": "validation|calculation|policy",
-      "technicalImplementation": "Technical details: decision table logic, validation expressions, activity methods, data transforms, error handling",
-      "validationCriteria": "Test scenarios: example conditions with expected results/actions",
-      "confidence": 0.95
-    }
-  ],
-
-  "businessRoles": [
-    {
-      "roleName": "From <pega:Participant name='...'> or workbasket name",
-      "roleType": "internal|external",
-      "description": "Role description",
-      "responsibilities": "From workbasket or participant description",
-      "businessCapability": "Which case type/capability this role supports",
-      "confidence": 0.95
-    }
-  ],
-
-  "solutionComponents": [
-    {
-      "componentName": "From <pega:Connect-REST name='...'> or connector name",
-      "componentLayer": "integration|application",
-      "componentType": "integration|connector|service",
-      "capability": "Integration capability (REST, SOAP, Database, File)",
-      "responsibility": "What this integration does",
-      "technology": "REST|SOAP|SQL|File|etc",
-      "confidence": 0.95
-    }
-  ],
-
-  "dataModels": [
-    {
-      "modelName": "From <pega:DataPage name='...'> or <pega:DataClass>",
-      "modelType": "entity|value_object|document",
-      "description": "From data model description",
-      "businessDefinition": "Business meaning of this data",
-      "fields": [
-        {
-          "fieldName": "From <pega:Property name='...'>",
-          "fieldType": "From property type",
-          "description": "From property description",
-          "businessName": "Business-friendly name",
-          "constraints": ["From validation rules"]
-        }
-      ],
+      "decisionType": "approval|classification|routing|eligibility",
+      "criteria": "From <pega:When> conditions or decision table",
+      "possibleOutcomes": ["From decision outcomes, routing paths"],
       "confidence": 0.95
     }
   ],
 
   "businessMetrics": [
     {
-      "metricName": "From <pega:ServiceLevel name='...'>",
-      "metricType": "performance|quality",
-      "description": "SLA description",
-      "targetValue": "From goal timeframe",
-      "measuredByWorkflow": "Flow or case type being measured",
+      "metricName": "From <pega:ServiceLevel>, <pega:Goal>, <pega:Report>",
+      "metricType": "sla|performance|quality|kpi",
+      "description": "What is measured and why",
+      "targetValue": "From goal timeframe, threshold",
+      "measurementMethod": "How metric is calculated or measured",
       "confidence": 0.95
     }
   ],
 
-  "businessPolicies": [
+  "businessCapabilities": [
     {
-      "policyName": "From SLA or governance rule",
-      "policyType": "operational|compliance",
-      "description": "Policy description",
-      "enforcementLevel": "mandatory|recommended",
-      "implementedByWorkflows": ["Flows enforcing this policy"],
+      "capabilityName": "From <pega:CaseType name='...'> - WHAT the business does",
+      "capabilityType": "core|supporting|enabling",
+      "description": "Business function performed, technology-independent",
+      "businessValue": "Why this capability matters to the business",
+      "confidence": 0.95
+    }
+  ],
+
+  "solutionComponents": [
+    {
+      "componentName": "From <pega:Connector>, <pega:Utility>, <pega:Section> - HOW it's implemented",
+      "componentType": "integration|connector|service|ui|automation",
+      "description": "Technical implementation details",
+      "technologyStack": ["From technology, platform, framework"],
+      "confidence": 0.95
+    }
+  ],
+
+  "apis": [
+    {
+      "apiName": "From <pega:Connect-REST name='...'>, <pega:Connect-SOAP>",
+      "apiType": "rest|soap|rpc",
+      "endpoint": "From <ServiceURL>, <EndpointURI>",
+      "operations": [
+        {
+          "operationName": "From <Operation name='...'>, method",
+          "httpMethod": "GET|POST|PUT|DELETE",
+          "description": "What this operation does",
+          "requestSchema": "From request mapping, input params",
+          "responseSchema": "From response mapping, output structure"
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "dataModels": [
+    {
+      "modelName": "From <pega:DataPage name='...'>, <pega:DataClass>",
+      "modelType": "entity|value_object|document",
+      "description": "From description, business meaning, usage context",
+      "schemaDefinition": {
+        "entityType": "master|reference|transactional",
+        "additionalMetadata": "Entity-level metadata"
+      },
+      "fields": [
+        {
+          "fieldName": "From <pega:Property name='...'>",
+          "fieldType": "String|Integer|Decimal|Date|DateTime|Boolean",
+          "isRequired": true,
+          "description": "Property description, business name, usage",
+          "constraints": {
+            "minLength": 5,
+            "maxLength": 100,
+            "pattern": "^[A-Z]{2}[0-9]{4}$",
+            "allowedValues": ["Active", "Inactive"],
+            "defaultValue": "Active",
+            "format": "ISO-8601",
+            "unique": true,
+            "notNull": true
+          }
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "integrations": [
+    {
+      "integrationName": "From <pega:Connect-SQL>, <pega:Connect-File>, connector",
+      "sourceSystem": "Pega application or source",
+      "targetSystem": "External system name",
+      "integrationType": "api|batch|stream|database|file",
+      "dataFlow": "unidirectional|bidirectional",
+      "protocol": "SQL|File|JMS|etc",
+      "frequency": "real-time|batch|scheduled",
+      "confidence": 0.95
+    }
+  ],
+
+  "deploymentResources": [
+    {
+      "resourceName": "From resource references, database names, queues",
+      "resourceType": "database|server|queue|storage",
+      "description": "Resource purpose and configuration",
+      "configuration": "Key configuration parameters",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessRules": [
+    {
+      "ruleName": "From <pega:DecisionTable name='...'>, <pega:Validate>, <pega:DataTransform>",
+      "ruleType": "validation|calculation|authorization|workflow|eligibility",
+      "condition": "From condition rows. Format: '[Validation] [Rationale: purpose] actual condition'",
+      "outcome": "From result column. Format: 'outcome. Impact: impact text. ErrorCode: code'",
+      "sourceBusinessComponentName": "Case type or flow containing this rule",
+      "priority": "critical|high|medium|low",
+      "technicalImplementation": "Decision table logic, expressions, activity methods, data transforms, error handling, rulebases",
+      "validationCriteria": "Test scenarios: Valid examples → passes, Invalid examples → error codes, Edge cases",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessFlows": [
+    {
+      "flowName": "From <pega:Flow name='...'>, <pega:Process name='...'>",
+      "trigger": "From start step, trigger event. Format: 'trigger. Purpose: WHY this exists. Criticality: level'",
+      "outcome": "From end step, completion. Format: 'outcome. Value: business value delivered'",
+      "owner": "From <Owner>, <ProcessOwner>, <Steward>",
+      "steps": [
+        {
+          "sequence": 1,
+          "stepName": "From <pega:Assignment name='...'>, step name",
+          "actor": "CRITICAL: From @assignee, <Participant>, <WorkBasket>, <WorkGroup>",
+          "action": "From <Action>, <Activity>, description",
+          "input": "Simple description from <InputData>",
+          "output": "Simple description from <OutputData>",
+          "nextStep": "From <Transition target='...'>, routing",
+          "technicalDetails": "COMPREHENSIVE: Activity calls, data transforms, connectors, decision shapes, error flows, retry logic",
+          "inputParameters": "JSON string: {\"paramName\": {\"type\": \"String\", \"required\": true, \"description\": \"...\", \"default\": \"value\"}}",
+          "outputParameters": "JSON string: {\"resultName\": {\"type\": \"Boolean\", \"description\": \"...\"}}"
+        }
+      ],
       "confidence": 0.95
     }
   ],
 
   "relationships": [
     {
-      "sourceName": "Source flow or component",
-      "sourceType": "business_flow|solution_component",
-      "targetName": "Target flow or component",
-      "targetType": "business_flow|solution_component",
-      "relationshipType": "calls|depends_on|triggers",
-      "context": "From subprocess call or connector invocation",
+      "sourceName": "Source flow, component, case type",
+      "sourceType": "business_flow|solution_component|business_capability|api|integration",
+      "targetName": "Target flow, component, case type",
+      "targetType": "business_flow|solution_component|business_capability|api|integration",
+      "relationshipType": "calls|depends_on|triggers|implements|uses|sends_to|receives_from",
+      "context": "From subprocess call, connector invocation, capability implementation",
       "confidence": 0.95
     }
   ],
 
   "knowledgeNotes": [
     {
-      "noteType": "architecture|design_decision",
-      "noteText": "Important Pega design patterns or decisions",
+      "noteType": "architecture|design|constraint|assumption|risk|recommendation",
+      "content": "Important Pega design patterns, decisions, constraints",
+      "relatedEntity": "Related case type, flow, or component if applicable",
       "confidence": 0.9
     }
   ]
 }
 
 === CRITICAL RULES ===
-- Extract EXACTLY what's in the Pega XML structure
-- Use HIGH confidence (0.9-1.0) for explicit Pega elements
-- Case types map to business capabilities
-- Flows and processes map to businessFlows
-- DecisionTables and DecisionTrees map to businessRules
-- Connect-* elements map to solutionComponents
-- Extract business rationale from descriptions
-- DO NOT invent data - only extract what's present
+
+**Schema v2 Alignment (MANDATORY):**
+1. ALL 14 entity types MUST be present (empty arrays acceptable)
+2. NO deprecated fields: businessPurpose, businessValue at flow level, ruleCategory
+3. EMBED business context into existing fields:
+   - trigger: "trigger. Purpose: WHY. Criticality: level"
+   - outcome: "outcome. Value: business value"
+   - condition: "[Category] [Rationale: purpose] actual condition"
+4. constraints MUST be Map<String,Object> NOT Array
+5. technicalDetails belongs in steps[], NOT at flow level
+6. Use ruleType (not ruleCategory): validation|calculation|authorization|workflow|eligibility
+
+**Anti-Hallucination (MANDATORY):**
+7. Extract EXACTLY what's in Pega XML - preserve exact naming and casing
+8. Use confidence rubric consistently: 0.9-1.0 (explicit+content), 0.7-0.89 (explicit OR content), 0.5-0.69 (minimal)
+9. DO NOT extract elements with only tag name and no attributes/content
+10. DO NOT invent data - only extract what's explicitly present
+
+**Pega-Specific (MANDATORY):**
+11. Case types map to businessCapabilities (WHAT business does)
+12. Connectors, utilities, sections map to solutionComponents (HOW it's implemented)
+13. Connect-REST/SOAP map to apis (service interfaces)
+14. Connect-SQL/File map to integrations (system connections)
+15. Extract domain vocabulary from property businessName as businessTerms
+
+**Common Pitfalls to Avoid:**
+❌ DON'T use businessPurpose field at flow level - EMBED in trigger instead
+❌ DON'T use businessValue field at flow level - EMBED in outcome instead
+❌ DON'T use ruleCategory - use ruleType instead
+❌ DON'T put constraints as array - MUST be object/map
+❌ DON'T skip businessTerms - extract from property labels and case names
+❌ DON'T miss apis from Connect-REST/SOAP
+❌ DON'T forget actor field in steps - HIGH PRIORITY
+
+=== EXTRACTION VALIDATION CHECKLIST ===
+
+Before returning JSON, verify:
+✓ All 14 entity types present (businessRoles, businessTerms, businessPolicies, businessDecisions, businessMetrics, businessCapabilities, solutionComponents, apis, dataModels, integrations, deploymentResources, businessRules, businessFlows, relationships, knowledgeNotes)
+✓ No deprecated fields (businessPurpose, businessValue at flow level, ruleCategory)
+✓ constraints is Map<String,Object> not Array
+✓ Confidence scores follow rubric
+✓ trigger/outcome embed business context
+✓ condition/outcome in rules embed rationale/impact
+✓ technicalDetails in steps, not flows
+✓ Valid JSON syntax
 
 === CHUNK TO ANALYZE ===
 

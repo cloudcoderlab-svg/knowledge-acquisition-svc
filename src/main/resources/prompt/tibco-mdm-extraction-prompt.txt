@@ -2,6 +2,8 @@ You are a TIBCO MDM knowledge extraction specialist.
 
 You are analyzing a CHUNK from a TIBCO MDM XML repository. Extract precise knowledge using TIBCO MDM-specific semantics.
 
+CRITICAL: Focus on extracting repository structure, workflow orchestration, business rules, and actor/role assignments with high precision.
+
 === DOCUMENT CONTEXT ===
 Overall Architecture: {{OVERALL_ARCHITECTURE}}
 Domain: {{DOMAIN}}
@@ -13,9 +15,16 @@ Known Business Terms: {{IDENTIFIED_TERMS}}
 === TIBCO MDM ELEMENT MAPPINGS ===
 
 **Repository Structure:**
-- <Repository name="X"> → Container for entities (maps to dataModels collection)
+- <Repository name="X"> → Top-level container (extract repository metadata, version, namespace)
+  * Extract repository @name, @version, @namespace as architectural components
+  * Capture repository-level <Description> for architecturalSummary
+  * Extract <Owner>, <CreatedDate>, <ModifiedDate> for provenance
 - <Entity name="Y"> → Business entity definition (maps to dataModels.modelName)
+  * Extract ALL attributes: @name, @type, @isPersistent, @isAbstract
+  * Parse <InheritanceHierarchy> for parent-child relationships
 - <Field name="F" type="T"> → Entity attribute (maps to dataModels.fields)
+  * Capture @name, @type, @required, @unique, @indexed
+  * Extract <DefaultValue>, <CalculatedExpression> for technical implementation
 
 **Validation & Rules:**
 - <Validation> → Business rule with ruleType="validation"
@@ -28,11 +37,30 @@ Known Business Terms: {{IDENTIFIED_TERMS}}
 - <Relationship type="lookup"> → dataModels.fields with foreign key constraint
 - <Relationship type="association"> → knowledge_relationships with relationshipType="associated_with"
 
-**Workflows:**
-- <WorkflowTemplate> → businessFlows (data stewardship workflows)
-- <WorkflowStep> → businessFlow.steps
-- <WorkflowTransition> → determines nextStep
-- <WorkflowRole> → businessRoles for stewards/approvers
+**Workflows (CRITICAL FOR ACTOR/ROLE EXTRACTION):**
+- <WorkflowTemplate name="X"> → businessFlows (orchestrated business processes)
+  * Extract @name, @version, @category, @priority
+  * Parse <TriggerEvent>, <StartCondition> for trigger field
+  * Extract <Owner>, <Steward> as owner field
+  * Capture <SLA>, <TimeoutDuration> for businessCriticality
+- <WorkflowStep name="S" id="ID"> → businessFlow.steps (sequential execution units)
+  * Extract @name, @id, @type, @sequence
+  * Parse <Actor> or <AssignedRole> → maps to actor field in step
+  * Extract <Activity>, <Action>, <ServiceCall> → action field
+  * Capture <InputParameters>, <ActualParameters> → inputParameters (JSON)
+  * Capture <OutputParameters>, <ReturnValues> → outputParameters (JSON)
+  * Parse <NextStep>, <Transition target="...">, <ConditionalRoute> → nextStep
+  * Extract <OnSuccess>, <OnFailure>, <OnTimeout> → error handling in technicalDetails
+- <WorkflowTransition from="X" to="Y"> → Determines step sequencing and routing
+  * Extract @condition for conditional routing
+  * Parse <TransitionRule> for complex decision logic
+- <WorkflowRole name="R"> or <Role> or <Actor> → businessRoles
+  * Extract role @name, @type (user/system/group)
+  * Capture <Permissions>, <Capabilities> for responsibilities
+  * Parse <RoleAssignment entity="E"> to understand entity-level access
+- <ServiceInvocation>, <RulebaseCall>, <APICall> → Extract into step.technicalDetails
+  * Capture service names, rulebases (e.g., "rbCheckValidation"), endpoints
+  * Extract method names, operation types
 
 **Master Data Concepts:**
 - <MasterRecord> → dataModels with masterData=true
@@ -50,189 +78,764 @@ Known Business Terms: {{IDENTIFIED_TERMS}}
 
 === EXTRACTION INSTRUCTIONS ===
 
-1. **Entity Extraction:**
-   - Extract ALL <Entity> elements as dataModels
-   - Use Entity @name for modelName
-   - Use <BusinessName> or <Description> for businessName and businessDefinition
-   - Set masterData=true if entity is marked as master data
-   - Extract <DataOwner> to businessOwner field
+PRIORITY ORDER: Extract in this sequence for maximum context:
+1. Repository metadata → 2. Entities & Fields → 3. Relationships → 4. Business Rules → 5. Workflows & Actors → 6. Metrics & Notes
 
-2. **Field Extraction:**
-   - Extract ALL <Field> elements within entities
-   - Capture field @name, @type, @required attributes
-   - Extract <Description> and <BusinessName> if present
-   - Extract <DefaultValue>, <AllowedValues> as constraints
-   - Extract <BusinessExamples> if present
+1. **Repository-Level Extraction (FOUNDATION):**
+   - If <Repository> tag present, extract repository metadata:
+     * Repository @name → Note in architecturalSummary: "Repository: RepoName"
+     * Repository @version → Note: "Version: X.Y.Z"
+     * Repository @namespace → Note: "Namespace: com.example.mdm"
+     * <Owner>, <Maintainer> → Extract as knowledgeNotes with noteType="architecture"
+     * <Description> → Include in architecturalSummary
+   - Extract repository-level configuration:
+     * <DefaultValidations>, <GlobalRules> → Extract as businessRules with scope="repository"
+     * <RepositorySettings>, <Configuration> → Note in knowledgeNotes
 
-3. **Validation Rules:**
-   - Extract ALL <Validation> elements as businessRules
-   - Parse condition expressions into condition field
-   - Extract error messages into businessImpact
-   - Use <Priority> for priority field
-   - Extract <BusinessRationale> if present
-   - **NEW: technicalImplementation** - Extract technical details:
-     * Validation regex patterns, formats, constraints
-     * Service or API names that perform validation
-     * Error codes and error message templates
-     * Data type constraints, range validations
-     * Calculation formulas with actual syntax
-   - **NEW: validationCriteria** - Create test scenarios:
-     * Example valid inputs and expected results
-     * Example invalid inputs and expected error codes/messages
-     * Edge cases and boundary conditions
+2. **Entity Extraction (MAPS TO dataModels ARRAY):**
 
-4. **Relationships:**
-   - Extract ALL <Relationship> elements
-   - Map source and target entity names
-   - Use relationship @type for relationshipType
-   - Extract cardinality and cascade rules
+   Extract ALL <Entity>, <BusinessEntity>, <MasterEntity> elements → Each becomes ONE dataModels array entry
 
-5. **Workflows:**
-   - Extract <WorkflowTemplate> as businessFlows
-   - Parse all workflow steps in sequence
-   - Extract role assignments for each step
-   - Capture approval/rejection paths
-   - **NEW: For each workflow step, extract technical details:**
-     * **technicalDetails** - Service calls, API endpoints, database operations, rulebase references (e.g., "rbCheckValidation"), transformations, error handling
-     * **inputParameters** - Parse <ActualParameters> or <InputData> into JSON format: {"paramName": {"type": "String", "required": true, "description": "..."}}
-     * **outputParameters** - Parse output variables into JSON format: {"resultName": {"type": "Boolean", "description": "..."}}
+   **modelName field:**
+   - Source: <Entity @name="X"> attribute
+   - Preserve EXACT casing and naming (e.g., "CustomerMaster", "ProductCatalog")
+   - This is the PRIMARY identifier for the entity
 
-6. **Data Quality:**
-   - Extract match rules, merge rules, survivorship rules
-   - Map to businessRules with appropriate ruleType
-   - Extract data quality dimensions as businessMetrics
+   **modelType field:**
+   - ALWAYS set to "entity" for TIBCO MDM entities
+   - Alternative values if applicable: "table", "view", "master_data", "reference_data"
+   - If <Entity @type="MasterRecord"> or <Entity @type="GoldenRecord"> → Use "master_data"
+   - If <LookupTable> or @referenceData="true" → Use "reference_data"
+
+   **description field (COMPREHENSIVE - MULTI-SOURCE):**
+   Build a rich description by combining these sources in this order:
+   1. <Description> or <BusinessDefinition> → Primary business meaning
+   2. <BusinessName> or <DisplayName> → If different from @name, prefix: "Business Name: X."
+   3. <DataOwner>, <Owner>, <BusinessOwner> → Add: "Data Owner: PersonName."
+   4. <DataSteward>, <Steward> → Add: "Data Steward: PersonName."
+   5. <SensitivityLevel>, <Classification>, <SecurityLevel> → Add: "Sensitivity: PII/Confidential/Public."
+   6. <QualityRequirement>, <DataQualityStandard> → Add: "Quality Requirements: X."
+   7. <BusinessContext>, <UsageContext>, <Purpose> → Add: "Business Usage: X."
+   8. <EntityMetadata>, <Tags>, <Keywords> → Add relevant tags
+   9. Inheritance info: If <Extends> or <InheritedFrom> → Add: "Inherits from: ParentEntityName."
+   10. Persistence: If @isPersistent="false" → Add: "Non-persistent (transient entity)."
+
+   Example description output:
+   "Master data entity for customer information. Business Name: Customer Master Record. Data Owner: John Smith. Data Steward: Jane Doe. Sensitivity: PII. Quality Requirements: 99% completeness, monthly validation. Business Usage: Used across CRM, billing, and analytics systems. Inherits from: PartyEntity."
+
+   **schemaDefinition object:**
+   This is a NESTED object containing the fields array (see next section)
+
+3. **Field Extraction (MAPS TO schemaDefinition.fields ARRAY):**
+
+   Extract ALL <Field>, <Attribute>, <Column> elements within each entity → Each becomes ONE fields array entry
+
+   **fieldName field:**
+   - Source: <Field @name="X"> attribute
+   - Preserve EXACT casing and naming (e.g., "customerID", "firstName", "creditScore")
+   - This is the PRIMARY identifier for the field
+
+   **fieldType field:**
+   - Source: <Field @type="X"> attribute
+   - Map to STANDARD data types:
+     * "String", "Text" → "String"
+     * "Integer", "Int", "Long" → "Integer"
+     * "Decimal", "Double", "Float", "Number" → "Decimal"
+     * "Date" → "Date"
+     * "DateTime", "Timestamp" → "DateTime"
+     * "Boolean", "Bool" → "Boolean"
+     * "Binary", "Blob" → "Binary"
+     * Custom types → Preserve as-is (e.g., "EmailAddress", "PhoneNumber")
+   - Include length/precision if specified: "String(50)", "Decimal(10,2)"
+
+   **isRequired field:**
+   - Source: <Field @required="true"> or @nullable="false"
+   - Set to true if @required="true" OR @nullable="false" OR @mandatory="true"
+   - Set to false if @required="false" OR @nullable="true" OR @optional="true"
+   - Default to false if not specified
+
+   **description field (COMPREHENSIVE - MULTI-SOURCE):**
+   Build a rich field description by combining these sources:
+   1. <Description> or <FieldDefinition> → Primary field meaning
+   2. <BusinessName> or <DisplayName> → If different from @name: "Business Name: X."
+   3. <BusinessMeaning>, <Purpose> → Business context and usage
+   4. <BusinessExamples>, <SampleValues>, <ExampleValue> → Add: "Examples: 'USD', 'EUR', 'GBP'."
+   5. <CalculatedExpression>, <DerivedFrom> → For calculated fields: "Calculated as: expression."
+   6. <IsPrimaryKey> → Add: "Primary key field."
+   7. <IsForeignKey>, <ReferenceEntity> → Add: "Foreign key to EntityName.fieldName."
+   8. <IsUnique> → Add: "Unique constraint applied."
+   9. <IsIndexed> → Add: "Indexed for query performance."
+   10. <IsSensitive>, <MaskingRule>, <PIICategory> → Add: "PII field - masked in non-production."
+
+   Example description output:
+   "Customer's primary email address. Business Name: Email Contact. Used for notifications and account recovery. Examples: 'john@example.com', 'jane.doe@company.org'. Unique constraint applied. PII field - masked in non-production."
+
+   **constraints object (MAP/OBJECT - NOT ARRAY):**
+   Extract ALL constraints and validations for the field as key-value pairs in a JSON object:
+
+   - From <MinLength>, <MaxLength>:
+     * "minLength": 5
+     * "maxLength": 100
+   - From <FieldLength> or @length:
+     * "length": 50
+   - From <Precision>, <Scale> (for decimals):
+     * "precision": 10
+     * "scale": 2
+   - From <MinValue>, <MaxValue> (for numeric/date fields):
+     * "minValue": 0
+     * "maxValue": 999999
+     * "minDate": "2020-01-01"
+   - From <AllowedValues>, <PermittedValues>, <Enumeration>:
+     * "allowedValues": ["Active", "Inactive", "Pending", "Archived"]
+   - From <DefaultValue>, <InitialValue>:
+     * "defaultValue": "Active" or "defaultValue": 0
+   - From <Pattern>, <RegexValidation>, <Format>:
+     * "pattern": "^[A-Z]{2}[0-9]{4}$"
+     * "format": "ISO-8601" or "format": "Email"
+   - From <NotNull>, <Mandatory>:
+     * "notNull": true
+   - From <Unique>, <IsUnique>:
+     * "unique": true
+   - From inline <Validation> or <FieldValidation>:
+     * "validationRule": "Must be valid currency code"
+   - From <ReferenceEntity>, <LookupTable> (for foreign keys):
+     * "foreignKey": "Country.countryCode"
+   - Custom constraints:
+     * "customConstraints": ["MustBePositive", "FutureDate"]
+
+   Example constraints output:
+   {
+     "maxLength": 100,
+     "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$",
+     "format": "Email",
+     "notNull": true,
+     "unique": true
+   }
+
+3. **Business Rules (ENHANCED):**
+
+   a. **Validation Rules:**
+      - Extract ALL <Validation>, <ValidationRule>, <BusinessRule type="validation"> as businessRules
+      - Use @name or @id for ruleName (preserve exact naming)
+      - Set ruleType = "validation" (or "data_quality", "match", "merge", "survivorship" based on rule category)
+      - Parse <Condition>, <Expression>, <Formula> → condition field
+        * INCLUDE category context and business rationale in condition field
+        * Format: "[Category: validation] [Rationale: purpose] actual_condition_expression"
+        * Example: "[Quality rule] [Rationale: Ensure data consistency] creditScore >= 0 AND creditScore <= 850"
+      - Extract <ErrorMessage>, <ValidationMessage> → outcome field
+        * INCLUDE error code, business impact, and owner in outcome field
+        * Format: "error_message. [Impact: impact_text] [Owner: owner_name] [ErrorCode: code]"
+        * Example: "Invalid credit score value. Impact: Loan approval process blocked. Owner: DataSteward. ErrorCode: MDM-VAL-001"
+      - Use <Priority>, <Severity> → priority field (critical|high|medium|low)
+      - Extract <AppliesTo>, <EntityScope> → sourceBusinessComponentName
+
+      **Technical Implementation (DETAILED):**
+      - Regex patterns: Extract from <Pattern>, <RegexValidation>, <Format>
+      - Service invocations: "<ValidationService name="X" method="Y">"
+      - Error codes: "ErrorCode: MDM-VAL-001"
+      - Constraints: "Range: 0-100", "MaxLength: 50", "DataType: ISO-8601 Date"
+      - Formulas: "Formula: (field1 + field2) * 0.15" (actual calculation syntax)
+      - Rulebase calls: "Rulebase: rbValidationRules.checkCreditScore"
+      - Lookup tables: "Lookup: LKP_VALID_COUNTRIES"
+
+      **Validation Criteria (TEST SCENARIOS):**
+      - Valid examples: "Valid: 'USD', 'EUR', 'GBP' → passes currency validation"
+      - Invalid examples: "Invalid: 'XXX' → Error MDM-VAL-012: Invalid currency code"
+      - Edge cases: "Boundary: age=0 → passes (newborn), age=-1 → fails (negative age)"
+      - Include <TestCase>, <ExampleValue> if present in XML
+
+   b. **Calculation Rules:**
+      - Extract <CalculatedField>, <DerivedField>, <ComputedValue>
+      - Set ruleType = "calculation"
+      - Parse <Formula>, <Expression>, <CalculationLogic> → condition (actual formula)
+      - Extract formula syntax EXACTLY: "netAmount = grossAmount - discountAmount - taxAmount"
+      - Include function calls: "calculateTax(amount, region)" or "SUM(lineItems.amount)"
+
+   c. **Data Quality Rules:**
+      - Extract <DataQualityRule>, <MatchRule>, <MergeRule>, <SurvivorshipRule>
+      - Set ruleCategory = "quality"
+      - For match rules: Extract matching algorithm, threshold scores, fuzzy matching config
+      - For merge rules: Extract merge strategy, conflict resolution logic
+      - For survivorship: Extract field-level precedence rules
+
+4. **Relationships (EXPLICIT & IMPLICIT):**
+
+   a. **Explicit Relationships:**
+      - Extract ALL <Relationship>, <Association>, <Link>, <Reference> elements
+      - Parse @source or @from → sourceName (exact entity name)
+      - Parse @target or @to → targetName (exact entity name)
+      - Set sourceType = "data_model" and targetType = "data_model"
+      - Map @type or @relationshipType:
+        * "parent-child" or "composition" → relationshipType = "parent_of"
+        * "child-parent" → relationshipType = "child_of"
+        * "lookup" or "reference" → relationshipType = "lookup"
+        * "association" or "aggregation" → relationshipType = "associated_with"
+        * "cross-reference" or "match" → relationshipType = "same_as"
+        * "inheritance" or "extends" → relationshipType = "inherits_from"
+      - Extract @cardinality, @multiplicity (e.g., "1:N", "M:N") → Add to context
+      - Parse <CascadeDelete>, <CascadeUpdate> → Add to context
+      - Extract <JoinCondition>, <LinkField> → Add to context
+      - Capture <InverseRelationship> for bidirectional links
+
+   b. **Implicit Relationships (DERIVED):**
+      - Foreign key fields: If field has <ReferenceEntity> or @foreignKey="true"
+        * Create relationship: field's parent entity → referenced entity
+        * relationshipType = "lookup"
+      - Workflow dependencies: Extract from workflow step transitions
+        * Create relationships between workflow and entities it operates on
+      - Rule dependencies: If businessRule applies to multiple entities
+        * Create "associated_with" relationships between entities
+      - Inheritance: <Entity extends="ParentEntity">
+        * Create relationshipType = "inherits_from"
+
+5. **Workflows (ENHANCED FOR ORCHESTRATION & ACTORS):**
+
+   a. **Workflow-Level Extraction:**
+      - Extract EVERY <WorkflowTemplate> as businessFlows entry
+      - Use @name for flowName (preserve exact naming)
+
+      **Trigger Extraction (TIBCO MDM Specific):**
+      TIBCO MDM workflows are typically triggered by CatalogAction events. Extract triggers using:
+
+      1. Workflow Name Analysis:
+         - Parse workflow name for business context
+         - Examples: "wfCreateAffiliation" → "Affiliation creation request"
+         - "wfModifyAffiliation" → "Affiliation modification request"
+
+      2. First CreateWorkItem Intent:
+         - Find first <Activity> with <Action>CreateWorkItem</Action>
+         - Extract <Parameter name="Intent"> value
+         - Extract <Parameter name="eventState"> value
+         - Combine: trigger = "{workflow_purpose} requiring {Intent}"
+         - Example: "Affiliation creation requiring Approval"
+
+      3. Input Document Structure:
+         - Check <Parameter name="InDocument"> for document type
+         - Look for CatalogAction references in parameters
+         - Infer: "triggered by catalog item submission"
+
+      4. Compose Trigger:
+         Format: "{business_action} initiated by {initiator_role}"
+         - Use workflow name for business_action
+         - Use first CreateWorkItem ParticipantType for initiator_role
+         - Example: "Affiliation modification initiated by NPE team member"
+
+      If no CreateWorkItem found: Use workflow name + "execution triggered by system event"
+
+      **Outcome Extraction (ENHANCED):**
+      - Extract <CompletionCriteria>, <SuccessCondition> → outcome field
+        * INCLUDE business value and success criteria in outcome field
+        * Format: "completion_state. Value: value_description. Success Criteria: {criteria}"
+        * Example: "Approved and merged customer record. Value: Single source of truth for customer data established. Success Criteria: Data quality score >= 95%, no duplicate conflicts"
+      - Extract <Owner>, <WorkflowSteward>, <BusinessOwner> → owner field
+      - Extract <Version>, <LastModified>, <CreatedBy> → Can be added to trigger or outcome as metadata if relevant
+
+   b. **Step-Level Extraction (CRITICAL):**
+      - Extract EVERY <WorkflowStep> in exact sequence order
+      - Use @sequence or position index for sequence field
+      - Extract @name for stepName (preserve exact naming)
+
+      **Actor Extraction (TIBCO MDM Specific):**
+      TIBCO MDM workflows use parameter-based actor assignment. Extract actors using this order:
+
+      1. CreateWorkItem Activities:
+         - Find <Parameter name="ParticipantType"> value (ROLE/MEMBER/GROUP)
+         - Find <Parameter name="ParticipantID"> variable name
+         - Combine: actor = "{ParticipantType}: {variable_name}"
+         - Examples: "ROLE: outNPFinalApproverID", "MEMBER: outInitiatorMemberID"
+
+      2. Intent-Based Inference:
+         - If <Parameter name="Intent"> value="Approval" → Add " Approver" suffix
+         - Example: "ROLE: outNPFinalApproverID Approver"
+
+      3. System Actions:
+         - If <Action>EvaluateRuleBase</Action> → actor="System: Rules Engine"
+         - If <Action>UpdateRecordState</Action> → actor="System"
+         - If <Action>CallSubflow</Action> → actor="System: Workflow Engine"
+
+      4. Workflow Owner Fallback:
+         - If no parameters found, use workflow <Owner> value
+         - Extract from <Workflow><Owner>username</Owner>
+
+      CRITICAL: Always extract actor even if it's a variable reference - this preserves role information for story generation.
+
+      **Action Extraction:**
+      - Parse <Action>, <Activity>, <Task>, <Operation> → action field
+      - Include action verbs: "Approve", "Validate", "Merge", "Review", "Calculate"
+      - Extract <ActionType> for categorization
+
+      **Input/Output Parameters (STRUCTURED):**
+      - Parse <InputData>, <InputParameters>, <ActualParameters>:
+        * Convert to JSON string: {"paramName": {"type": "String", "required": true, "description": "Parameter purpose"}}
+        * Extract parameter names, data types, required flags, default values
+        * Include <ParameterMapping> or <DataBinding> information
+      - Parse <OutputData>, <OutputParameters>, <ReturnValues>:
+        * Convert to JSON string: {"resultName": {"type": "Boolean", "description": "Result meaning"}}
+        * Extract output variable names, types, descriptions
+        * Include <OutputMapping> or <ResultBinding>
+
+      **Technical Implementation (DETAILED):**
+      - Extract ALL technical execution details:
+        * <ServiceCall> or <ServiceInvocation> → "Service: ServiceName.methodName"
+        * <RulebaseCall> → "Rulebase: rbRulebaseName"
+        * <APIEndpoint> → "API: POST /api/endpoint"
+        * <DatabaseOperation> → "DB: INSERT INTO tableName" or "DB: SELECT FROM..."
+        * <Transformation> → "Transform: TransformationName"
+        * <ValidationCall> → "Validation: validationRuleName"
+        * <CalculationEngine> → "Calculate: formulaName"
+        * <OnSuccess>, <OnFailure>, <OnTimeout> → Error handling and exception paths
+        * <RetryPolicy>, <CompensationAction> → Resilience mechanisms
+
+      **Step Routing:**
+      - Parse <NextStep>, <Transition target="...">, <ConditionalRoute> → nextStep field
+      - Include condition: "if approved then StepX, else StepY"
+      - Extract <LoopCondition> for iterative steps
+      - Capture <ParallelSplit> or <Join> for parallel execution patterns
+
+   c. **Role & Actor Information:**
+      - Roles are captured in workflow step "actor" field (not a separate collection)
+      - When extracting <WorkflowRole>, <Role>, <SecurityRole>:
+        * Use role @name for the actor field in workflow steps
+        * Include role description, responsibilities in step action or technicalDetails if relevant
+        * Example actor field: "Data Steward (responsible for data quality validation)"
+      - For role hierarchy or permissions:
+        * Include in workflow trigger, outcome, or step technicalDetails as context
+        * Example: "Requires Data Steward role with approval permissions"
+
+6. **Business Capabilities vs Solution Components (CRITICAL DISTINCTION):**
+
+   a. **Business Capabilities (WHAT - Business Functions):**
+      - Extract BUSINESS FUNCTIONS independent of technology from <Capability>, <BusinessFunction>, <Function>
+      - Set capabilityType = "core|supporting|enabling" based on strategic importance
+      - Extract business value and purpose (WHY this capability matters)
+      - Examples: "Customer Master Data Management", "Data Quality Assurance", "Match and Merge Processing"
+      - Stable over time even as technology changes
+      - Focus on WHAT the business does, not HOW technically
+
+   b. **Solution Components (HOW - Technical Implementation):**
+      - Extract TECHNICAL IMPLEMENTATIONS from <Component>, <Service>, <Module>, <System>, <Application>, <Adapter>
+      - Set componentType = "service|module|application|system|adapter|connector"
+      - Extract technology stack: languages, frameworks, platforms used
+      - Examples: "MDM Hub Service", "Data Quality Engine", "Match Engine", "Golden Record Builder"
+      - Technology-specific and may change with platform upgrades
+      - Focus on HOW capabilities are implemented technically
+
+   c. **Mapping Business to Technical (via Relationships):**
+      - Create relationships between businessCapabilities and solutionComponents:
+        * relationshipType = "implements" (component implements capability)
+        * Example: "Match Engine" (solutionComponent) implements "Duplicate Detection" (businessCapability)
+
+7. **Business Roles, Terms, Policies, Decisions:**
+
+   a. **Business Roles:**
+      - Extract ALL <Role>, <Actor>, <WorkflowRole>, <SecurityRole>, <Assignee> as businessRoles entries
+      - Use @name for roleName (preserve exact naming)
+      - Parse <Description>, <Responsibilities>, <Permissions>, <Capabilities> → responsibilities field
+      - Include permission levels, entity access, approval authority
+      - Examples: "Data Steward", "Business Analyst", "System Administrator", "Approver"
+
+   b. **Business Terms:**
+      - Extract <BusinessName>, <TermDefinition>, <GlossaryTerm>, <DomainVocabulary>
+      - Also extract from entity/field business names when different from technical names
+      - Use termName for business term, definition for explanation
+      - Extract <Alias>, <Synonym>, <AlternateName> → aliases array
+      - Examples: "Customer" (term) = "Party, Account Holder, Client" (aliases)
+
+   c. **Business Policies:**
+      - Extract <Policy>, <ComplianceRule>, <DataGovernancePolicy>, <RetentionPolicy>
+      - Set policyType based on category: data_retention, privacy, compliance, governance, security, quality
+      - Parse <PolicyStatement>, <Requirement> → description
+      - Extract <EnforcementRule>, <ValidationRule> → enforcementMechanism
+      - Examples: "GDPR Right to be Forgotten", "7-Year Data Retention", "PII Masking Policy"
+
+   d. **Business Decisions:**
+      - Extract <Decision>, <DecisionPoint>, <ApprovalPoint>, <ConditionalLogic>
+      - Set decisionType: approval, classification, routing, eligibility, assessment
+      - Parse <DecisionCriteria>, <EvaluationLogic> → criteria field
+      - Extract <Outcome>, <Result>, <Action> → possibleOutcomes array
+      - Examples: "Credit Score Approval", "Duplicate Classification", "Record Merge Eligibility"
+
+8. **APIs and Integrations:**
+
+   a. **APIs (Service Interfaces):**
+      - Extract <API>, <Service>, <WebService>, <SOAPService>, <RESTEndpoint>
+      - Set apiType: rest, soap, graphql, rpc, message_queue
+      - Parse <Endpoint>, <URL>, <ServiceURL> → endpoint field
+      - Extract operations from <Operation>, <Method>, <Action>:
+        * operationName from @name
+        * httpMethod from <HTTPMethod> or <Verb>
+        * requestSchema from <Request>, <InputSchema>, <Parameters>
+        * responseSchema from <Response>, <OutputSchema>, <ReturnType>
+
+   b. **Integrations (System Connections):**
+      - Extract <Integration>, <Connector>, <Adapter>, <DataFlow>, <Interface>
+      - Parse <SourceSystem>, <Source> → sourceSystem
+      - Parse <TargetSystem>, <Target>, <Destination> → targetSystem
+      - Set integrationType: api, batch, stream, event, file
+      - Extract <Protocol>, <Transport> → protocol (HTTP, SOAP, JMS, FTP, SFTP, Kafka)
+      - Parse <Frequency>, <Schedule> → frequency (real-time, batch, scheduled)
+
+9. **Deployment Resources:**
+
+   - Extract <Resource>, <Server>, <Database>, <Queue>, <Topic>, <Storage>, <Cache>
+   - Set resourceType: database, server, queue, topic, storage, cache
+   - Parse <ResourceName>, @name → resourceName
+   - Extract <Configuration>, <Settings>, <ConnectionString> → configuration
+   - Examples: "MDM_MASTER_DB", "ValidationQueue", "CacheServer", "GoldenRecordTopic"
+
+10. **Data Quality & Metrics:**
+
+   a. **Match & Merge Rules:**
+      - Extract <MatchRule>, <DuplicateDetection>, <RecordMatching>
+      - Set ruleType = "validation", and mention matching in condition
+      - Parse matching algorithm: "Fuzzy", "Exact", "Probabilistic"
+      - Extract <MatchThreshold>, <ConfidenceScore> → Include in condition
+      - Extract <MatchingFields> or <ComparisonAttributes> → List in condition
+      - Parse <MergeRule>, <ConsolidationRule>, <RecordMerge>
+      - Extract merge strategy: "Survivor", "Union", "Custom"
+      - Parse <SurvivorshipRule> for field-level precedence
+      - Extract <ConflictResolution> logic → technicalImplementation
+
+   b. **Business Metrics:**
+      - Extract <QualityMetric>, <KPI>, <SLA>, <PerformanceIndicator>, <DataQualityDimension>
+      - Set metricType: quality, performance, sla, kpi
+      - Parse <MetricName>, @name → metricName
+      - Extract <TargetValue>, <Threshold>, <Goal> → targetValue
+      - Parse <MeasurementFormula>, <CalculationMethod> → measurementMethod
+      - Examples: "Data Completeness Score", "Match Accuracy Rate", "Workflow SLA Compliance"
+
+11. **Knowledge Notes:**
+
+   - Extract <Note>, <Comment>, <Annotation>, <Recommendation>, <DesignDecision>, <ArchitectureNote>
+   - Set noteType: architecture, design, constraint, assumption, risk, recommendation, migration
+   - Parse content from element text or <Description>
+   - Extract <RelatedTo>, <AppliesTo> → relatedEntity (if applicable)
+   - Use for important observations, decisions, constraints, or recommendations not captured elsewhere
+
+=== ANTI-HALLUCINATION RULES ===
+
+CRITICAL: Follow these rules to prevent hallucination and ensure extraction accuracy:
+
+1. Extract ONLY information EXPLICITLY present in TIBCO MDM XML elements, attributes, and text nodes
+2. DO NOT infer entities, relationships, or values beyond what exists in XML structure
+3. DO NOT fabricate attribute values, element content, or XML patterns not in the source
+4. PRESERVE exact XML element names, attribute names, and values without modification
+5. DO NOT assume standard TIBCO MDM schemas - only extract what is actually present in this chunk
+6. If an attribute or element is not present in the XML, OMIT the corresponding field (empty arrays are acceptable)
+7. Use lower confidence scores (0.5-0.69) when information is implied from structure only
+8. DO NOT extract elements with only a tag name and no meaningful attributes or child content
+9. When uncertain about XML structure interpretation, omit the entity rather than guessing
+10. DO NOT invent namespaces, prefixes, or qualifications not in the source XML
+
+=== CONFIDENCE SCORING RUBRIC ===
+
+Apply confidence scores based on the quality and completeness of information extracted:
+
+**0.9-1.0 (Very High Confidence):**
+- XML element explicitly defined with multiple meaningful attributes AND descriptive content
+- All key information present and unambiguous (name, type, description, context)
+- Example: <Entity name="Customer" type="master" persistent="true"><Description>Master customer record</Description><Owner>DataSteward</Owner></Entity>
+
+**0.7-0.89 (High Confidence):**
+- XML element explicitly defined with some attributes OR descriptive content
+- Most key information present (at minimum: name or id + one other attribute or child element)
+- Example: <Field name="emailAddress" type="String" required="true"/>
+
+**0.5-0.69 (Medium Confidence):**
+- XML element minimally defined with basic identification only
+- Only name/id attribute present, limited context
+- Example: <Validation name="CheckFormat"/> (no condition, no description)
+
+**Below 0.5 (Do Not Extract):**
+- Insufficient XML evidence to extract meaningful information
+- Only tag name present with no attributes or content
+- Example: <CustomEntity/> (no name, no attributes, no content)
 
 === OUTPUT FORMAT ===
 
-Return ONLY valid JSON using this structure:
+Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 {
   "architecturalSummary": "Summary of this TIBCO MDM chunk",
 
-  "dataModels": [
-    {
-      "modelName": "Entity name from <Entity name='...'>",
-      "modelType": "entity",
-      "description": "From <Description>",
-      "businessName": "From <BusinessName> or @displayName",
-      "businessDefinition": "Business meaning from <Description>",
-      "businessOwner": "From <DataOwner>",
-      "dataSensitivity": "From <SensitivityLevel> (map to: public|internal|confidential|pii|restricted)",
-      "dataQualityRequirements": "From <QualityRequirements>",
-      "businessUsage": "From <BusinessUsage> or <Description>",
-      "masterData": true,  // if <MasterRecord> or <GoldenRecord>
-      "referenceData": false,  // if <LookupTable> or <ReferenceData>
-      "fields": [
-        {
-          "fieldName": "From <Field name='...'>",
-          "fieldType": "From <Field type='...'>",
-          "isRequired": true,  // from <Field required='true'>
-          "description": "From <Description>",
-          "businessName": "From <BusinessName>",
-          "businessDefinition": "Business meaning",
-          "businessExamples": "From <Examples> or <SampleValues>",
-          "constraints": ["From <AllowedValues>, <MinLength>, <MaxLength>, etc."]
-        }
-      ],
-      "confidence": 0.95  // High confidence for structured XML
-    }
-  ],
-
-  "businessRules": [
-    {
-      "ruleName": "From <Validation name='...'> or <Rule name='...'>",
-      "ruleType": "validation|calculation|authorization|policy",
-      "condition": "From <Condition> expression",
-      "outcome": "From <ErrorMessage> or <Action>",
-      "sourceBusinessComponentName": "Entity name containing this rule",
-      "priority": "From <Priority> (critical|high|medium|low)",
-      "businessRationale": "From <BusinessRationale> or <Purpose>",
-      "businessImpact": "From <ErrorMessage> or impact description",
-      "ruleCategory": "validation|quality|calculation",
-      "businessOwner": "From <Owner> or <Steward>",
-      "technicalImplementation": "Technical details: validation regex patterns, API endpoints called, service names, error codes, data transformation logic, calculation formulas with actual syntax",
-      "validationCriteria": "Test scenarios for validation: example valid inputs with expected outcomes, example invalid inputs with expected error codes and messages",
-      "confidence": 0.95
-    }
-  ],
-
-  "businessFlows": [
-    {
-      "flowName": "From <WorkflowTemplate name='...'>",
-      "trigger": "From <TriggerEvent> or <StartCondition>",
-      "outcome": "From <CompletionCriteria>",
-      "owner": "From <WorkflowOwner>",
-      "businessPurpose": "From <Description> or <Purpose>",
-      "businessValue": "Why this workflow exists",
-      "businessCriticality": "From <Priority> level",
-      "steps": [
-        {
-          "sequence": 1,  // from step order
-          "stepName": "From <WorkflowStep name='...'>",
-          "actor": "From <Role> or <Assignee>",
-          "action": "From <Action> or <Activity>",
-          "input": "From <InputData>",
-          "output": "From <OutputData>",
-          "nextStep": "From <Transition target='...'>",
-          "technicalDetails": "Technical implementation: API/service calls, database operations, transformations, rulebases invoked, error handling mechanisms",
-          "inputParameters": "JSON string with structured input specs: {\"paramName\": {\"type\": \"String\", \"required\": true, \"description\": \"...\"}}",
-          "outputParameters": "JSON string with structured output specs: {\"resultName\": {\"type\": \"Boolean\", \"description\": \"...\"}}"
-        }
-      ],
-      "confidence": 0.95
-    }
-  ],
-
   "businessRoles": [
     {
-      "roleName": "From <Role name='...'> or <WorkflowRole>",
-      "roleType": "internal",  // MDM roles are typically internal
-      "description": "From <Description>",
-      "responsibilities": "From <Responsibilities>",
-      "businessCapability": "Data Stewardship|Master Data Management",
+      "roleName": "From <Role name='...'>, <Actor>, <WorkflowRole>, <SecurityRole>",
+      "responsibilities": "From <Description>, <Responsibilities>, <Permissions>, <Capabilities>. Include permission levels, entity access, approval authority",
       "confidence": 0.95
     }
   ],
 
-  "relationships": [
+  "businessTerms": [
     {
-      "sourceName": "From <Relationship source='...'>",
-      "sourceType": "data_model",
-      "targetName": "From <Relationship target='...'>",
-      "targetType": "data_model",
-      "relationshipType": "parent_of|child_of|associated_with|same_as|lookup",
-      "context": "From <Relationship type='...'> and cardinality",
+      "termName": "From <BusinessName>, <TermDefinition>, <GlossaryTerm>, or field/entity business names",
+      "definition": "From <Definition>, <BusinessMeaning>, <Description>. Business explanation of the term",
+      "aliases": ["Alternative names from <Alias>, <Synonym>, <AlternateName>"],
+      "confidence": 0.95
+    }
+  ],
+
+  "businessPolicies": [
+    {
+      "policyName": "From <Policy name='...'>, <ComplianceRule>, <DataGovernancePolicy>",
+      "policyType": "data_retention|privacy|compliance|governance|security|quality",
+      "description": "From <Description>, <PolicyStatement>. What the policy mandates",
+      "enforcementMechanism": "From <EnforcementRule>, <ValidationRule>. How policy is enforced technically",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessDecisions": [
+    {
+      "decisionName": "From <Decision name='...'>, <DecisionPoint>, <ApprovalPoint>",
+      "decisionType": "approval|classification|routing|eligibility|assessment",
+      "criteria": "From <DecisionCriteria>, <Condition>, <EvaluationLogic>. What determines the decision",
+      "possibleOutcomes": ["From <Outcome>, <Result>, <Action>. List all possible decision results"],
       "confidence": 0.95
     }
   ],
 
   "businessMetrics": [
     {
-      "metricName": "From <QualityMetric name='...'>",
-      "metricType": "quality",
-      "description": "From <Description>",
-      "calculationMethod": "From <CalculationFormula>",
-      "targetValue": "From <TargetValue> or <Threshold>",
+      "metricName": "From <QualityMetric>, <KPI>, <SLA>, <PerformanceIndicator>",
+      "metricType": "quality|performance|sla|kpi",
+      "description": "From <Description>, <MetricDefinition>. What is being measured",
+      "targetValue": "From <TargetValue>, <Threshold>, <SLA>. Expected value or threshold",
+      "measurementMethod": "From <MeasurementFormula>, <CalculationMethod>. How metric is calculated",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessCapabilities": [
+    {
+      "capabilityName": "From <Capability>, <BusinessFunction>, <Function>. WHAT the business does (technology-independent)",
+      "capabilityType": "core|supporting|enabling",
+      "description": "From <Description>, <BusinessValue>, <Purpose>. Business function performed, independent of HOW it's implemented",
+      "businessValue": "From <BusinessValue>, <StrategicImportance>. Why this capability matters to the business",
+      "confidence": 0.95
+    }
+  ],
+
+  "solutionComponents": [
+    {
+      "componentName": "From <Component>, <Service>, <Module>, <System>, <Application>. HOW capabilities are implemented (technical)",
+      "componentType": "service|module|application|system|adapter|connector",
+      "description": "From <Description>, <Purpose>. Technical implementation details, technologies used",
+      "technologyStack": ["From <Technology>, <Framework>, <Platform>. List of technologies"],
+      "confidence": 0.95
+    }
+  ],
+
+  "apis": [
+    {
+      "apiName": "From <API name='...'>, <Service>, <WebService>, <SOAPService>, <RESTEndpoint>",
+      "apiType": "rest|soap|graphql|rpc|message_queue",
+      "endpoint": "From <Endpoint>, <URL>, <ServiceURL>",
+      "operations": [
+        {
+          "operationName": "From <Operation name='...'>, <Method>, <Action>",
+          "httpMethod": "GET|POST|PUT|DELETE|PATCH",
+          "description": "From <Description>, <OperationDescription>",
+          "requestSchema": "From <Request>, <InputSchema>, <Parameters>. JSON or XML schema",
+          "responseSchema": "From <Response>, <OutputSchema>, <ReturnType>. JSON or XML schema"
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "dataModels": [
+    {
+      "modelName": "Entity name from <Entity name='...'>",
+      "modelType": "entity|master_data|reference_data|table|view",
+      "description": "COMPREHENSIVE: From <Description>. Include business meaning, data owner, sensitivity level, quality requirements, business usage context, inheritance info, etc.",
+      "schemaDefinition": {
+        "entityType": "master|reference|transactional",
+        "isPersistent": true,
+        "isAbstract": false,
+        "parentEntity": "ParentEntityName if inheritance exists",
+        "additionalMetadata": "Any other entity-level metadata"
+      },
+      "fields": [
+        {
+          "fieldName": "From <Field name='...'>",
+          "fieldType": "String|Integer|Decimal|Date|DateTime|Boolean|Binary|CustomType",
+          "isRequired": true,
+          "description": "COMPREHENSIVE: From <Description>. Include business name, business meaning, examples, PII flag, unique/indexed flags, FK references, calculated expressions, etc.",
+          "constraints": {
+            "minLength": 5,
+            "maxLength": 100,
+            "pattern": "^[A-Z]{2}[0-9]{4}$",
+            "allowedValues": ["Active", "Inactive", "Pending"],
+            "defaultValue": "Active",
+            "format": "ISO-8601",
+            "unique": true,
+            "foreignKey": "ReferenceEntity.fieldName",
+            "customConstraints": ["Any additional constraints as needed"]
+          }
+        }
+      ]
+    }
+  ],
+
+  "integrations": [
+    {
+      "integrationName": "From <Integration name='...'>, <Connector>, <Adapter>, <DataFlow>",
+      "sourceSystem": "From <SourceSystem>, <Source>. System sending data",
+      "targetSystem": "From <TargetSystem>, <Target>, <Destination>. System receiving data",
+      "integrationType": "api|batch|stream|event|file",
+      "dataFlow": "From <DataFlow>, <Direction>. unidirectional|bidirectional",
+      "protocol": "From <Protocol>, <Transport>. HTTP|SOAP|JMS|FTP|SFTP|Kafka",
+      "frequency": "From <Frequency>, <Schedule>. real-time|batch|scheduled",
+      "confidence": 0.95
+    }
+  ],
+
+  "deploymentResources": [
+    {
+      "resourceName": "From <Resource name='...'>, <Server>, <Database>, <Queue>, <Topic>",
+      "resourceType": "database|server|queue|topic|storage|cache",
+      "description": "From <Description>, <Purpose>",
+      "configuration": "From <Configuration>, <Settings>. Key configuration parameters",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessRules": [
+    {
+      "ruleName": "Exact name from <Validation name='...'> or <Rule name='...'> or <BusinessRule name='...'>",
+      "ruleType": "validation|calculation|authorization|policy|data_quality|match|merge|survivorship",
+      "condition": "Complete condition expression from <Condition>, <Expression>, <Formula>, <When>, <If>. Include business rationale and category context (e.g., 'Quality rule: ', 'Match rule: ')",
+      "outcome": "Expected result from <ErrorMessage>, <Action>, <Result>, <Then>. Include error codes if present. Include business impact and owner info (e.g., 'Error MDM-001: Invalid format. Impact: Data quality degradation. Owner: DataSteward')",
+      "sourceBusinessComponentName": "Entity name that owns this rule from <AppliesTo>, <EntityScope>, or parent <Entity>",
+      "priority": "critical|high|medium|low - from <Priority>, <Severity>, <Criticality>",
+      "technicalImplementation": "DETAILED technical specs: Regex patterns with actual syntax, Service/API names and methods, Error codes (e.g., MDM-VAL-001), Data type constraints, Range validations, Calculation formulas with exact syntax, Rulebase calls (e.g., rbValidationRules.checkCredit), Lookup table references, Matching algorithms and thresholds, Merge strategies. Include business rationale if available.",
+      "validationCriteria": "STRUCTURED test scenarios: 1) Valid examples with expected results (e.g., 'USD' → passes), 2) Invalid examples with error codes (e.g., 'XXX' → MDM-VAL-012: Invalid currency), 3) Edge cases and boundaries (e.g., age=0 → passes, age=-1 → fails)",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessFlows": [
+    {
+      "flowName": "Exact name from <WorkflowTemplate name='...'> or <Workflow name='...'> or <Process name='...'>",
+      "trigger": "What starts this workflow from <TriggerEvent>, <StartCondition>, <EventListener>, <InitiatedBy>. Include business purpose, priority/criticality info (e.g., 'Manual data change submission. Purpose: Ensure data quality. Criticality: High')",
+      "outcome": "Expected end state from <CompletionCriteria>, <SuccessCondition>, <EndState>, <FinalOutcome>. Include business value and completion criteria (e.g., 'Approved and merged customer record. Value: Single source of truth for customer data')",
+      "owner": "Workflow owner from <Owner>, <WorkflowOwner>, <ProcessOwner>, <Steward>",
+      "steps": [
+        {
+          "sequence": 1,
+          "stepName": "Exact step name from <WorkflowStep name='...'> or <Step name='...'> or <Activity name='...'>",
+          "actor": "CRITICAL: Who/what executes this step. Sources: <Actor>, <AssignedRole>, <Assignee>, <Performer>, <Role>, <ResponsibleParty>, <ExecutedBy>. Format: 'RoleName' or 'System: SystemName' or 'Dynamic: ${variable}'",
+          "action": "What action is performed from <Action>, <Activity>, <Task>, <Operation>. Use action verbs: Approve, Validate, Review, Merge, Calculate, Transform, Enrich, etc.",
+          "input": "Simple description of inputs from <InputData>, <RequiredData>, <Consumes>. E.g., 'Customer record with address changes'",
+          "output": "Simple description of outputs from <OutputData>, <ResultData>, <Produces>. E.g., 'Validated customer record with quality score'",
+          "nextStep": "Next step routing from <NextStep>, <Transition target='...'>, <ConditionalRoute>. Include conditions if present: 'If approved -> ApprovalStep, else -> RejectionStep' or just 'ValidationStep'",
+          "technicalDetails": "COMPREHENSIVE technical implementation details: Service calls with names (e.g., 'CustomerService.validateAddress'), API endpoints (e.g., 'POST /api/v1/customers/validate'), Database operations (e.g., 'UPDATE customer_master SET status=...'), Rulebase invocations (e.g., 'rbCheckValidation.executeRules'), Transformations (e.g., 'AddressNormalization.transform'), Error handling (e.g., 'OnFailure: rollback transaction, notify steward'), Retry policies, Timeout handling",
+          "inputParameters": "JSON-formatted string with detailed parameter specifications: {\"customerID\": {\"type\": \"String\", \"required\": true, \"description\": \"Unique customer identifier\"}, \"changeType\": {\"type\": \"String\", \"required\": false, \"description\": \"Type of change: CREATE|UPDATE|DELETE\", \"default\": \"UPDATE\"}}. Parse from <InputParameters>, <ActualParameters>, <ParameterMapping>",
+          "outputParameters": "JSON-formatted string with detailed output specifications: {\"isValid\": {\"type\": \"Boolean\", \"description\": \"Validation result\"}, \"errorCodes\": {\"type\": \"Array<String>\", \"description\": \"List of validation error codes if failed\"}, \"qualityScore\": {\"type\": \"Decimal\", \"description\": \"Data quality score 0-100\"}}. Parse from <OutputParameters>, <ReturnValues>, <ResultMapping>"
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "relationships": [
+    {
+      "sourceName": "Exact source entity/component name from <Relationship source='...'>, <Relationship from='...'>, or parent entity containing the relationship",
+      "sourceType": "data_model|solution_component|business_capability|api|integration|business_rule|business_flow|business_role",
+      "targetName": "Exact target entity/component name from <Relationship target='...'>, <Relationship to='...'>, <ReferenceEntity>, <LookupTable>",
+      "targetType": "data_model|solution_component|business_capability|api|integration|business_rule|business_flow|business_role",
+      "relationshipType": "depends_on|calls|uses|sends_to|receives_from|reads_from|writes_to|stores_in|publishes|subscribes|implements|extends|contains|triggers|validates|transforms|approves|owns|measured_by|parent_of|child_of|associated_with|same_as|lookup|inherits_from",
+      "context": "Relationship details: Include cardinality (1:1, 1:N, M:N), cascade rules (CASCADE DELETE, CASCADE UPDATE), join conditions, bidirectional info. From <Relationship type='...'>, @cardinality, <CascadeDelete>, <CascadeUpdate>, <JoinCondition>",
       "confidence": 0.95
     }
   ],
 
   "knowledgeNotes": [
     {
-      "noteType": "architecture|design_decision|constraint",
-      "noteText": "Important observations from this chunk",
-      "confidence": 0.9
+      "noteType": "architecture|design|constraint|assumption|risk|recommendation|migration",
+      "content": "From <Note>, <Comment>, <Annotation>, <Recommendation>, <DesignDecision>. Important observations, decisions, constraints, or recommendations",
+      "relatedEntity": "Name of related entity/component if applicable",
+      "confidence": 0.95
     }
   ]
 }
 
 === CRITICAL RULES ===
-- Extract EXACTLY what's in the XML structure
-- Use HIGH confidence (0.9-1.0) for explicit XML elements
-- Preserve entity names, field names EXACTLY as they appear
-- Map TIBCO MDM concepts to our unified schema
-- DO NOT invent data - only extract what's present
-- Empty arrays are acceptable if elements not found in chunk
+
+**JSON Structure Alignment (MATCHES JAVA ENTITIES EXACTLY - Schema v2):**
+
+1. ALL entity types from KnowledgeExtractionResult.java MUST be supported:
+   - businessRoles, businessTerms, businessPolicies, businessDecisions, businessMetrics
+   - businessCapabilities (NEW in schema v2 - WHAT the business does)
+   - solutionComponents (NEW name for technicalComponents - HOW it's implemented)
+   - apis, dataModels, integrations, deploymentResources
+   - businessRules, businessFlows, relationships, knowledgeNotes
+
+2. **Schema v2 Critical Distinction:**
+   - businessCapabilities: WHAT the business does (technology-independent business functions)
+     * Examples: "Customer Onboarding", "Order Management", "Risk Assessment"
+     * From <Capability>, <BusinessFunction>, <Function>
+   - solutionComponents: HOW capabilities are implemented (technical solutions)
+     * Examples: "CustomerService", "OrderAPI", "RiskEngine"
+     * From <Component>, <Service>, <Module>, <System>
+
+3. dataModels entries MUST have:
+   - Required: modelName, modelType, description
+   - Optional: schemaDefinition (Map<String, Object>), fields (array of field objects)
+   - Fields are BOTH in schemaDefinition AND as a separate fields array
+
+4. Each field object in fields[] MUST have:
+   - Required: fieldName, fieldType, isRequired (boolean), description
+   - Optional: constraints (Map<String, Object> - NOT array)
+
+5. businessRules entries MUST have:
+   - Required: ruleName, ruleType, condition, outcome, sourceBusinessComponentName, priority, confidence
+   - Optional: technicalImplementation, validationCriteria
+
+6. businessFlows entries MUST have:
+   - Required: flowName, trigger, outcome, owner, steps[], confidence
+
+7. Each step in steps[] MUST have:
+   - Required: sequence (integer), stepName, actor, action, input, output, nextStep
+   - Optional: technicalDetails, inputParameters (JSON string), outputParameters (JSON string)
+
+8. relationships entries MUST have:
+   - Required: sourceName, sourceType, targetName, targetType, relationshipType, context, confidence
+   - sourceType and targetType values: data_model, solution_component, business_capability, api, integration, business_rule, business_flow, business_role
+   - relationshipType values: depends_on, calls, uses, sends_to, receives_from, reads_from, writes_to, stores_in, publishes, subscribes, implements, extends, contains, triggers, validates, transforms, approves, owns, measured_by, parent_of, child_of, associated_with, same_as, lookup, inherits_from
+
+9. businessRoles, businessMetrics, knowledgeNotes are ACTIVE entity types:
+   - Extract roles from <Role>, <Actor>, <WorkflowRole>
+   - Extract metrics from <QualityMetric>, <KPI>, <SLA>
+   - Extract notes from <Note>, <Comment>, <DesignDecision>, <Recommendation>
+
+**Anti-Hallucination and Confidence Rules:**
+- Extract EXACTLY what's in the XML structure - preserve exact naming and casing
+- Use VERY HIGH confidence (0.9-1.0) for explicit XML elements with multiple attributes and content
+- Use HIGH confidence (0.7-0.89) for explicit XML elements with some attributes
+- Use MEDIUM confidence (0.5-0.69) for minimally defined XML elements with only name/id
+- DO NOT extract (confidence below 0.5) when only tag name present with no attributes or content
+- Preserve entity names, field names, rule names EXACTLY as they appear in XML
+- Map TIBCO MDM-specific concepts to our unified schema using the mappings provided
+- DO NOT invent data - only extract what's explicitly present in XML
+- Empty arrays are acceptable and expected if elements not found in chunk
+- For multi-source fields (like description), combine all available sources with clear delimiters
+
+**Field Population Priority:**
+- businessCapabilities: Extract business functions (WHAT) separately from technical components (HOW)
+- solutionComponents: Extract technical implementations separately from business capabilities
+- inputParameters and outputParameters: ALWAYS format as JSON strings with proper structure
+- actor field in workflow steps: HIGH PRIORITY - extract from ALL possible sources, include role context
+- technicalDetails: Be comprehensive - include service names, APIs, DBs, rulebases, error handling
+- description fields: Combine multiple sources to create rich, informative descriptions
+- constraints: MUST be a Map/Object with key-value pairs, NOT an array
+- condition field in rules: Include category context and business rationale as prefix
+- outcome field in rules: Include error codes, business impact, and owner information
+- trigger field in workflows: Include business purpose and criticality level
+- outcome field in workflows: Include business value and success criteria
+- schemaDefinition in dataModels: Use for entity-level metadata (isPersistent, parentEntity, etc.)
+- fields array in dataModels: Contains detailed field definitions with constraints object
 
 === CHUNK TO ANALYZE ===
 

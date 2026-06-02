@@ -70,7 +70,14 @@ public class ProjectService {
             .metadata(toJson(request.metadata()))
             .build();
     ProjectEntity savedProject = projectRepository.save(project);
-    createProjectDefinition(sourceBucket, gcsPrefix, request.definition());
+    createProjectDefinition(
+        sourceBucket,
+        gcsPrefix,
+        normalizedName,
+        version,
+        request.title(),
+        request.description(),
+        request.definition());
     return toResponse(savedProject);
   }
 
@@ -313,19 +320,102 @@ public class ProjectService {
     }
   }
 
-  private void createProjectDefinition(String bucket, String prefix, String definition) {
-    if (definition == null || definition.isBlank()) {
-      return;
-    }
+  private void createProjectDefinition(
+      String bucket,
+      String prefix,
+      String projectName,
+      int version,
+      String title,
+      String description,
+      String definition) {
+    String definitionContent =
+        (definition != null && !definition.isBlank())
+            ? definition
+            : generateDefaultDefinition(projectName, version, title, description);
+
     BlobInfo definitionFile =
         BlobInfo.newBuilder(bucket, prefix + "definition.md")
             .setContentType("text/markdown")
             .setMetadata(
                 java.util.Map.of(
                     "managed-by", "knowledge_engine_svc",
-                    "purpose", "project-definition"))
+                    "purpose", "project-definition",
+                    "auto-generated", String.valueOf(definition == null || definition.isBlank())))
             .build();
-    storage.create(definitionFile, definition.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    storage.create(
+        definitionFile, definitionContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    log.info("Created definition.md for project: {} (v{})", projectName, version);
+  }
+
+  private String generateDefaultDefinition(
+      String projectName, int version, String title, String description) {
+    StringBuilder template = new StringBuilder();
+    template.append("# Project Definition: ").append(projectName).append("\n\n");
+    template.append("**Version:** ").append(version).append("\n\n");
+
+    if (title != null && !title.isBlank()) {
+      template.append("**Title:** ").append(title).append("\n\n");
+    }
+
+    if (description != null && !description.isBlank()) {
+      template.append("## Description\n\n").append(description).append("\n\n");
+    }
+
+    template.append("## Project Context for AI Extraction\n\n");
+    template.append("This file provides context to guide the AI knowledge extraction process. ");
+    template.append(
+        "Update this file with domain-specific information to improve extraction accuracy.\n\n");
+
+    template.append("### Domain & Architecture\n\n");
+    template.append(
+        "- **Business Domain:** [e.g., Customer Data Management, Order Processing, Financial Services]\n");
+    template.append(
+        "- **Source System:** [e.g., TIBCO MDM, Legacy Mainframe, Custom Application]\n");
+    template.append(
+        "- **Target Architecture:** [e.g., Java Microservices, Spring Boot, Event-Driven]\n");
+    template.append(
+        "- **Key Architectural Patterns:** [e.g., Repository Pattern, CQRS, Event Sourcing]\n\n");
+
+    template.append("### Technologies\n\n");
+    template.append("- **Languages:** [e.g., Java 17, Python, JavaScript]\n");
+    template.append("- **Frameworks:** [e.g., Spring Boot, Spring Cloud, React]\n");
+    template.append("- **Databases:** [e.g., PostgreSQL, MongoDB, Redis]\n");
+    template.append("- **Integration:** [e.g., REST APIs, GraphQL, Message Queues]\n");
+    template.append("- **Cloud Platform:** [e.g., GCP, AWS, Azure, Hybrid]\n\n");
+
+    template.append("### Business Context\n\n");
+    template.append("- **Primary Business Capabilities:** [List key business functions]\n");
+    template.append("- **Key Business Roles:** [e.g., Data Steward, Business Analyst, Approver]\n");
+    template.append("- **Critical Workflows:** [e.g., Customer Onboarding, Order Fulfillment]\n");
+    template.append("- **Compliance Requirements:** [e.g., GDPR, SOX, HIPAA, PCI-DSS]\n\n");
+
+    template.append("### Known Components & Services\n\n");
+    template.append("List known components that may be referenced in the documentation:\n\n");
+    template.append("- **APIs:** [e.g., Customer API, Order API, Payment Gateway]\n");
+    template.append(
+        "- **Services:** [e.g., Validation Service, Notification Service, Workflow Engine]\n");
+    template.append("- **Data Entities:** [e.g., Customer, Order, Product, Invoice]\n\n");
+
+    template.append("### Extraction Guidelines\n\n");
+    template.append("**Entity Naming Conventions:**\n");
+    template.append("- Use consistent naming for roles, components, and workflows\n");
+    template.append(
+        "- Prefix system components with \"System:\" (e.g., \"System: Payment Service\")\n");
+    template.append(
+        "- Prefix automated processes with \"Automated:\" (e.g., \"Automated: Nightly Batch\")\n\n");
+
+    template.append("**Business Terms & Glossary:**\n");
+    template.append("[Define domain-specific terms and their meanings]\n\n");
+
+    template.append("**Special Considerations:**\n");
+    template.append(
+        "[Any special extraction rules, data sensitivity notes, or migration-specific context]\n\n");
+
+    template.append("---\n\n");
+    template.append(
+        "*This file is automatically created for each project. Edit it to provide domain context that improves AI extraction accuracy.*\n");
+
+    return template.toString();
   }
 
   private String definitionEmbedding(String definition) {

@@ -54,11 +54,6 @@ public class DeterministicXmlExtractionService {
       result.setBusinessRules(extractRules(root, objectName, platform));
       result.setBusinessFlows(extractWorkflows(root, objectName, platform));
       result.setRelationships(extractRelationships(root, platform));
-      result.setMigrationNotes(
-          List.of(
-              "Deterministic XML extraction used platform "
-                  + platform.name()
-                  + " before AI enrichment."));
       return result;
     } catch (Exception e) {
       log.warn("Deterministic XML extraction failed for {}", objectName, e);

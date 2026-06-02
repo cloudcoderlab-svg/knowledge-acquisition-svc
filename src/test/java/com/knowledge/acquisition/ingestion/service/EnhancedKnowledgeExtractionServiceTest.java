@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knowledge.acquisition.dto.AIResponse;
 import com.knowledge.acquisition.dto.DocumentKnowledge;
 import com.knowledge.acquisition.ingestion.service.ai.VertexAIService;
 import com.knowledge.acquisition.ingestion.util.PromptLoaderUtils;
@@ -19,7 +20,8 @@ class EnhancedKnowledgeExtractionServiceTest {
     VertexAIService vertexAIService = mock(VertexAIService.class);
     when(vertexAIService.generate(anyString()))
         .thenReturn(
-            """
+            AIResponse.withoutTokens(
+                """
             {
               "dataModels": [
                 {
@@ -37,7 +39,7 @@ class EnhancedKnowledgeExtractionServiceTest {
                 }
               ]
             }
-            """);
+            """));
 
     EnhancedKnowledgeExtractionService service =
         new EnhancedKnowledgeExtractionService(

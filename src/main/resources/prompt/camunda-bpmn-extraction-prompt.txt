@@ -2,136 +2,331 @@ You are a Camunda BPMN 2.0 knowledge extraction specialist.
 
 You are analyzing a CHUNK from a Camunda BPMN XML process definition. Extract precise workflow knowledge using BPMN 2.0 and Camunda-specific semantics.
 
+CRITICAL: Follow anti-hallucination rules and confidence scoring rubric to ensure extraction accuracy.
+
 === DOCUMENT CONTEXT ===
 Overall Architecture: {{OVERALL_ARCHITECTURE}}
 Domain: {{DOMAIN}}
 Subdomain: {{SUBDOMAIN}}
 Technologies: {{TECHNOLOGIES}}
 Known Workflows: {{IDENTIFIED_WORKFLOWS}}
+Known Capabilities: {{IDENTIFIED_CAPABILITIES}}
 Known Roles: {{IDENTIFIED_ROLES}}
+Known Terms: {{IDENTIFIED_TERMS}}
 
 === CAMUNDA BPMN ELEMENT MAPPINGS ===
 
-**Process Structure:**
-- <bpmn:process id="X" name="Y"> → businessFlows.flowName = "Y"
-- <bpmn:documentation> → Extract business purpose and rationale
-- <bpmn:extensionElements> → Camunda-specific configurations
+| BPMN Element | Maps To | Context |
+|--------------|---------|---------|
+| <bpmn:process> | businessFlows | Process definition |
+| <bpmn:collaboration> | relationships | Inter-process communication |
+| <bpmn:participant> | businessRoles or integrations | Pool participants |
+| <bpmn:lane> | businessRoles | Organizational units |
+| <bpmn:userTask> | businessFlow.steps | User interactions, actor extraction |
+| <bpmn:serviceTask> | solutionComponents or apis | Service integrations (HOW) |
+| <bpmn:businessRuleTask> | businessRules | Rule/decision execution |
+| <bpmn:scriptTask> | solutionComponents | Script execution |
+| <bpmn:manualTask> | businessFlow.steps | Manual activities |
+| <bpmn:sendTask> | solutionComponents or integrations | Message sending |
+| <bpmn:receiveTask> | solutionComponents or integrations | Message receiving |
+| <bpmn:exclusiveGateway> | businessDecisions | XOR routing (choose one) |
+| <bpmn:parallelGateway> | businessFlow.steps | AND routing (parallel) |
+| <bpmn:inclusiveGateway> | businessDecisions | OR routing (one or more) |
+| <bpmn:eventBasedGateway> | businessDecisions | Event-driven routing |
+| <bpmn:startEvent> | businessFlows.trigger | Process initiation |
+| <bpmn:endEvent> | businessFlows.outcome | Process completion |
+| <bpmn:intermediateThrowEvent> | businessFlow.steps | Event throwing |
+| <bpmn:intermediateCatchEvent> | businessFlow.steps | Event catching |
+| <bpmn:boundaryEvent> | businessRules | Exception/timeout handling |
+| <bpmn:timerEvent> | businessMetrics or policies | Timing constraints |
+| <bpmn:dataObject> | dataModels or businessTerms | Data structures |
+| <bpmn:dataStoreReference> | deploymentResources | Database references |
+| <bpmn:property> | dataModels.fields | Process variables |
+| <bpmn:messageFlow> | relationships | Inter-pool communication |
+| <bpmn:sequenceFlow> | steps.nextStep | Flow routing |
+| <bpmn:conditionExpression> | businessDecisions.criteria | Routing logic |
+| <camunda:formData> | dataModels | UI form definitions |
+| <camunda:executionListener> | solutionComponents | Process event handlers |
+| <camunda:taskListener> | solutionComponents | Task event handlers |
+| <camunda:inputOutput> | steps inputParameters/outputParameters | Data mappings |
+| <camunda:connector> | apis or integrations | External integrations |
 
-**Tasks:**
-- <bpmn:userTask> → businessFlow.steps with actor from assignee/candidateGroups
-- <bpmn:serviceTask> → solutionComponents (service integrations)
-- <bpmn:businessRuleTask> → businessRules
-- <bpmn:scriptTask> → solutionComponents with componentType="script"
-- <bpmn:manualTask> → businessFlow.steps with manual activity
-- <bpmn:sendTask> / <bpmn:receiveTask> → solutionComponents (messaging)
+=== ANTI-HALLUCINATION RULES ===
 
-**Gateways:**
-- <bpmn:exclusiveGateway> → businessDecisions (XOR - choose one path)
-- <bpmn:parallelGateway> → businessFlow.steps (AND - parallel execution)
-- <bpmn:inclusiveGateway> → businessDecisions (OR - one or more paths)
-- <bpmn:eventBasedGateway> → businessDecisions (event-driven routing)
+CRITICAL: Follow these rules to prevent hallucination and ensure extraction accuracy:
 
-**Events:**
-- <bpmn:startEvent> → businessFlows.trigger
-- <bpmn:endEvent> → businessFlows.outcome
-- <bpmn:intermediateThrowEvent> → businessFlow.steps (signal/message)
-- <bpmn:intermediateCatchEvent> → businessFlow.steps (waiting)
-- <bpmn:boundaryEvent> → businessRules (exception handling)
-- <bpmn:timerEvent> → businessFlow.steps with timing constraints
+1. Extract ONLY information EXPLICITLY present in BPMN XML elements, attributes, and text nodes
+2. DO NOT infer entities, relationships, or values beyond what exists in XML structure
+3. DO NOT fabricate attribute values, element content, or XML patterns not in the source
+4. PRESERVE exact BPMN element IDs and names (@id, @name attributes) without modification
+5. DO NOT assume standard BPMN 2.0 extensions - extract actual Camunda/BPMN elements only
+6. If an attribute or element is not present in the XML, OMIT the corresponding field
+7. Use lower confidence scores (0.5-0.69) when information is implied from structure only
+8. DO NOT extract elements with only a tag name and no meaningful attributes or child content
+9. When uncertain about gateway type interpretation, use lower confidence or omit
+10. DO NOT invent namespaces, prefixes (bpmn, camunda) or qualifications not in the source XML
 
-**Lanes & Pools:**
-- <bpmn:lane name="X"> → businessRoles.roleName = "X"
-- <bpmn:participant> → businessRoles or external system
-- <bpmn:collaboration> → relationships between processes
+=== CONFIDENCE SCORING RUBRIC ===
 
-**Data:**
-- <bpmn:dataObject> → dataModels or businessTerms
-- <bpmn:dataStoreReference> → deploymentResources (database)
-- <bpmn:property> → process variables
+Apply confidence scores based on the quality and completeness of information extracted:
 
-**Camunda Extensions:**
-- <camunda:formData> → UI forms for user tasks
-- <camunda:executionListener> → Event handlers
-- <camunda:taskListener> → Task lifecycle handlers
-- <camunda:inputOutput> → Data mappings
-- <camunda:connector> → External system integrations
+**0.9-1.0 (Very High Confidence):**
+- BPMN element explicitly defined with multiple meaningful attributes AND descriptive content
+- All key information present and unambiguous (id, name, documentation, configuration)
+- Example: `<bpmn:userTask id="task1" name="Review Application"><bpmn:documentation>Manual review by loan officer for credit assessment</bpmn:documentation><camunda:assignee>loanOfficer</camunda:assignee></bpmn:userTask>`
 
-**Sequence & Message Flows:**
-- <bpmn:sequenceFlow> → Determines steps.nextStep and ordering
-- <bpmn:conditionExpression> → businessDecisions.decisionCriteria
-- <bpmn:messageFlow> → relationships with relationshipType="sends_message_to"
+**0.7-0.89 (High Confidence):**
+- BPMN element explicitly defined with some attributes OR descriptive content
+- Most key information present (at minimum: id/name + one other attribute or child element)
+- Example: `<bpmn:serviceTask id="task2" name="CreditCheck" camunda:class="CreditCheckDelegate"/>`
+
+**0.5-0.69 (Medium Confidence):**
+- BPMN element minimally defined with basic identification only
+- Only id or name attribute present, limited context
+- Example: `<bpmn:exclusiveGateway id="gateway1" name="Decision"/>` (no conditions)
+
+**Below 0.5 (Do Not Extract):**
+- Insufficient XML evidence to extract meaningful information
+- Only tag name present with no attributes or content
+- Example: `<bpmn:task/>` (no id, no name, no attributes, no content)
 
 === EXTRACTION INSTRUCTIONS ===
 
-1. **Process Extraction:**
-   - Extract <bpmn:process> as businessFlows
-   - Use @name for flowName
-   - Extract ALL <bpmn:documentation> for businessPurpose
-   - Identify trigger from <bpmn:startEvent>
-   - Identify outcome from <bpmn:endEvent>
+**Priority Order:** Extract in this sequence for maximum context:
+1. Process & Collaboration → 2. Capabilities → 3. Steps & Tasks → 4. Gateways & Decisions → 5. Events → 6. Roles → 7. Data → 8. Integrations
 
-2. **Task Extraction:**
-   - Extract ALL task types as businessFlow.steps
-   - Use @name for stepName
-   - Extract assignee, candidateUsers, candidateGroups for actor
-   - Parse <bpmn:documentation> for action description
-   - Use sequence order from sequenceFlow connections
+**1. Process & Capability Extraction:**
+- Extract <bpmn:process> as businessFlows
+- High-level processes (pools) may represent businessCapabilities (WHAT business does)
+- flowName from @name attribute (or @id if name missing)
+- Extract ALL <bpmn:documentation> - contains business WHY
 
-3. **Gateway Extraction:**
-   - Extract gateways as businessDecisions
-   - Parse <bpmn:conditionExpression> for decision criteria
-   - Extract outgoing flows as decisionOptions
-   - Use gateway @name for decisionName
+**2. Trigger & Outcome Extraction:**
+- trigger: From <bpmn:startEvent>. EMBED purpose and criticality from documentation: "trigger event. Purpose: WHY. Criticality: level"
+- outcome: From <bpmn:endEvent>. EMBED business value from documentation: "outcome event. Value: business value delivered"
 
-4. **Role Extraction:**
-   - Extract <bpmn:lane> names as businessRoles
-   - Extract assignee patterns as role names
-   - Map candidateGroups to businessRoles
+**3. Task Extraction:**
+- Extract ALL task types (<bpmn:userTask>, <bpmn:serviceTask>, <bpmn:businessRuleTask>, <bpmn:scriptTask>, <bpmn:manualTask>, <bpmn:sendTask>, <bpmn:receiveTask>) as steps
+- sequence: Derived from <bpmn:sequenceFlow> connections
+- stepName from @name attribute
+- actor: From @assignee, <camunda:candidateUsers>, <camunda:candidateGroups> - CRITICAL FIELD
+- action: From <bpmn:documentation> or task name
+- input: From <camunda:inputParameter>, <bpmn:dataInputAssociation>
+- output: From <camunda:outputParameter>, <bpmn:dataOutputAssociation>
+- nextStep: From <bpmn:sequenceFlow @targetRef>
+- technicalDetails: Include delegate class names, connector configs, script language, error events (COMPREHENSIVE)
+- inputParameters: JSON string format from <camunda:inputParameter>
+- outputParameters: JSON string format from <camunda:outputParameter>
 
-5. **Service Task Extraction:**
-   - Extract <bpmn:serviceTask> as solutionComponents
-   - Parse <camunda:connector> for integration details
-   - Extract API endpoints from connector configurations
-   - Map to componentType="service" or "integration"
+**4. Gateway & Decision Extraction:**
+- Extract <bpmn:exclusiveGateway>, <bpmn:inclusiveGateway>, <bpmn:eventBasedGateway> as businessDecisions
+- decisionName from @name attribute
+- criteria: From <bpmn:conditionExpression> on outgoing <bpmn:sequenceFlow>
+- possibleOutcomes: Parse from outgoing flow @name attributes
 
-6. **Data Extraction:**
-   - Extract <bpmn:dataObject> as data models or terms
-   - Parse process variables from documentation
-   - Extract input/output mappings
+**5. Service Task & Integration Extraction:**
+- Extract <bpmn:serviceTask> with <camunda:class>, <camunda:delegateExpression> as solutionComponents
+- Extract <bpmn:serviceTask> with <camunda:connector> as apis
+- endpoint from connector <camunda:connectorId>, URL parameters
+- operations: Parse HTTP method, request/response mappings
 
-7. **Documentation Extraction:**
-   - ALWAYS extract <bpmn:documentation> - it contains the business WHY
-   - Extract purpose, rationale, business value
-   - Extract success criteria and business rules
+**6. Role Extraction:**
+- Extract <bpmn:lane> names as businessRoles
+- Extract @assignee, candidateGroups patterns as businessRoles
+- Extract <bpmn:participant> as businessRoles (if internal) or integrations (if external system)
+
+**7. Data Extraction:**
+- Extract <bpmn:dataObject> as dataModels or businessTerms
+- Extract process variables from documentation or <bpmn:property>
+- Extract <camunda:formData> as dataModels with fields from <camunda:formField>
+- constraints from formField validation attributes
+
+**8. Event & Policy Extraction:**
+- Extract <bpmn:timerEvent> with duration/cycle as businessMetrics (SLA) or businessPolicies (timing policy)
+- Extract <bpmn:boundaryEvent> as businessRules (exception handling, timeout rules)
+
+**9. Terms & Metrics Extraction:**
+- Extract domain vocabulary from process names, task names, data object names as businessTerms
+- Extract timer durations, SLA requirements from documentation as businessMetrics
 
 === OUTPUT FORMAT ===
 
-Return ONLY valid JSON using this structure:
+Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 {
   "architecturalSummary": "Summary of this BPMN process chunk",
 
+  "businessRoles": [
+    {
+      "roleName": "From <bpmn:lane name='...'>, @assignee, candidateGroups",
+      "responsibilities": "From lane documentation, task assignments",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessTerms": [
+    {
+      "termName": "From process/task names, data object names, domain vocabulary",
+      "businessDefinition": "Business meaning from <bpmn:documentation>",
+      "technicalDefinition": "Process variable name, data type",
+      "synonyms": ["Alternate names from aliases"],
+      "category": "domain|process|metric|role|entity",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessPolicies": [
+    {
+      "policyName": "From timer events, SLA requirements, boundary events",
+      "policyType": "operational|compliance|sla|timeout",
+      "description": "Policy statement from documentation",
+      "enforcementMechanism": "How policy is enforced (timer, boundary event, escalation)",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessDecisions": [
+    {
+      "decisionName": "From <bpmn:exclusiveGateway name='...'>, <bpmn:inclusiveGateway>",
+      "decisionType": "approval|classification|routing|eligibility",
+      "criteria": "From <bpmn:conditionExpression> on outgoing flows",
+      "possibleOutcomes": ["From outgoing sequenceFlow @name attributes"],
+      "confidence": 0.95
+    }
+  ],
+
+  "businessMetrics": [
+    {
+      "metricName": "From <bpmn:timerEvent>, SLA documentation",
+      "metricType": "sla|performance|duration",
+      "description": "What is measured (process duration, SLA target)",
+      "targetValue": "From timer duration, cycle expression, documentation",
+      "measurementMethod": "Timer expression, SLA tracking",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessCapabilities": [
+    {
+      "capabilityName": "From high-level process name, pool participant name - WHAT the business does",
+      "capabilityType": "core|supporting|enabling",
+      "description": "Business function performed, technology-independent",
+      "businessValue": "Why this capability matters (from documentation)",
+      "confidence": 0.95
+    }
+  ],
+
+  "solutionComponents": [
+    {
+      "componentName": "From <bpmn:serviceTask>, <bpmn:scriptTask>, listeners - HOW it's implemented",
+      "componentType": "service|integration|script|listener|adapter",
+      "description": "Technical implementation (delegate class, script, listener)",
+      "technologyStack": ["From camunda:class, scriptFormat, connector type"],
+      "confidence": 0.95
+    }
+  ],
+
+  "apis": [
+    {
+      "apiName": "From <bpmn:serviceTask> with <camunda:connector>",
+      "apiType": "rest|soap|http",
+      "endpoint": "From <camunda:connectorId>, URL parameters",
+      "operations": [
+        {
+          "operationName": "From connector method, operation name",
+          "httpMethod": "From <camunda:inputParameter name='method'> - GET|POST|PUT|DELETE",
+          "description": "What this operation does",
+          "requestSchema": "From input parameters, request mapping",
+          "responseSchema": "From output parameters, response mapping"
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "dataModels": [
+    {
+      "modelName": "From <bpmn:dataObject name='...'>, <camunda:formData>",
+      "modelType": "value_object|event|document|form",
+      "description": "From <bpmn:documentation>, form purpose",
+      "schemaDefinition": {
+        "formKey": "From @formKey attribute",
+        "additionalMetadata": "Form-level metadata"
+      },
+      "fields": [
+        {
+          "fieldName": "From <camunda:formField id='...'>, process variable",
+          "fieldType": "From @type attribute - string|long|boolean|date|enum",
+          "isRequired": true,
+          "description": "From @label, field documentation",
+          "constraints": {
+            "minLength": 5,
+            "maxLength": 100,
+            "pattern": "^[A-Z]{2}[0-9]{4}$",
+            "allowedValues": ["From enum values"],
+            "defaultValue": "From @defaultValue",
+            "format": "From validation attributes"
+          }
+        }
+      ],
+      "confidence": 0.95
+    }
+  ],
+
+  "integrations": [
+    {
+      "integrationName": "From <bpmn:participant>, <bpmn:messageFlow>, external service tasks",
+      "sourceSystem": "Camunda process or source pool",
+      "targetSystem": "External participant, service name",
+      "integrationType": "api|message|event",
+      "dataFlow": "From <bpmn:messageFlow> direction - unidirectional|bidirectional",
+      "protocol": "From connector type - HTTP|REST|SOAP|JMS",
+      "frequency": "From documentation or timer - real-time|event-driven",
+      "confidence": 0.95
+    }
+  ],
+
+  "deploymentResources": [
+    {
+      "resourceName": "From <bpmn:dataStoreReference name='...'>, resource references",
+      "resourceType": "database|storage|queue",
+      "description": "Resource purpose from documentation",
+      "configuration": "Connection details if present",
+      "confidence": 0.95
+    }
+  ],
+
+  "businessRules": [
+    {
+      "ruleName": "From <bpmn:businessRuleTask name='...'>, <bpmn:boundaryEvent>, <bpmn:conditionExpression>",
+      "ruleType": "workflow|validation|authorization|exception",
+      "condition": "From <bpmn:conditionExpression>, decision table reference. Format: '[Workflow] [Rationale: purpose] expression'",
+      "outcome": "What happens when rule applied. Format: 'outcome. Impact: impact text'",
+      "sourceBusinessComponentName": "Process containing this rule",
+      "priority": "critical|high|medium|low",
+      "technicalImplementation": "DMN decision tables, expression language (JUEL/Groovy), error handling, escalation",
+      "validationCriteria": "Test scenarios: example inputs with expected decision outcomes",
+      "confidence": 0.95
+    }
+  ],
+
   "businessFlows": [
     {
-      "flowName": "From <bpmn:process name='...'>",
-      "trigger": "From <bpmn:startEvent> type and conditions",
-      "outcome": "From <bpmn:endEvent> type and result",
-      "owner": "From process owner in documentation",
-      "businessPurpose": "From <bpmn:documentation> - WHY this process exists",
-      "businessValue": "Business value delivered",
-      "businessFrequency": "From documentation (daily|weekly|monthly|on_demand|real_time)",
-      "businessCriticality": "From priority or SLA info",
+      "flowName": "From <bpmn:process name='...'> or @id",
+      "trigger": "From <bpmn:startEvent>. Format: 'event type. Purpose: WHY from documentation. Criticality: level'",
+      "outcome": "From <bpmn:endEvent>. Format: 'event type. Value: business value from documentation'",
+      "owner": "From process owner in documentation, pool lane",
       "steps": [
         {
-          "sequence": 1,  // from sequenceFlow order
-          "stepName": "From <bpmn:userTask name='...'> or other task name",
-          "actor": "From assignee, candidateUsers, or candidateGroups",
+          "sequence": 1,
+          "stepName": "From task @name (userTask, serviceTask, etc.)",
+          "actor": "CRITICAL: From @assignee, <camunda:candidateUsers>, <camunda:candidateGroups>",
           "action": "From <bpmn:documentation> or task name",
-          "input": "From <camunda:inputParameter> or dataInputAssociation",
-          "output": "From <camunda:outputParameter> or dataOutputAssociation",
-          "nextStep": "From <bpmn:sequenceFlow targetRef='...'>",
-          "technicalDetails": "Technical implementation: service task class names, delegates, REST connectors, script language, error events",
-          "inputParameters": "JSON string from <camunda:inputParameter>: {\"varName\": {\"type\": \"String\", \"description\": \"...\"}}",
+          "input": "Simple description from <camunda:inputParameter>, dataInputAssociation",
+          "output": "Simple description from <camunda:outputParameter>, dataOutputAssociation",
+          "nextStep": "From <bpmn:sequenceFlow @targetRef>",
+          "technicalDetails": "COMPREHENSIVE: Delegate classes, REST connectors, script language (Groovy/JavaScript), DMN references, error events, retry config",
+          "inputParameters": "JSON string from <camunda:inputParameter>: {\"varName\": {\"type\": \"String\", \"description\": \"...\", \"source\": \"expression\"}}",
           "outputParameters": "JSON string from <camunda:outputParameter>: {\"resultVar\": {\"type\": \"Boolean\", \"description\": \"...\"}}"
         }
       ],
@@ -139,102 +334,79 @@ Return ONLY valid JSON using this structure:
     }
   ],
 
-  "businessDecisions": [
-    {
-      "decisionName": "From <bpmn:exclusiveGateway name='...'>",
-      "decisionQuestion": "What is being decided? From gateway name/documentation",
-      "decisionCriteria": "From <bpmn:conditionExpression> on outgoing flows",
-      "decisionMakerRole": "Role making this decision",
-      "decisionOptions": ["Parse from outgoing sequenceFlow @name attributes"],
-      "decisionContext": "From <bpmn:documentation>",
-      "workflowName": "Process name containing this gateway",
-      "confidence": 0.95
-    }
-  ],
-
-  "businessRoles": [
-    {
-      "roleName": "From <bpmn:lane name='...'> or candidateGroups",
-      "roleType": "internal|external|system",
-      "description": "Role responsibilities from documentation",
-      "responsibilities": "From lane documentation or task assignments",
-      "businessCapability": "Which capability this role supports",
-      "confidence": 0.95
-    }
-  ],
-
-  "businessRules": [
-    {
-      "ruleName": "From <bpmn:businessRuleTask name='...'> or condition",
-      "ruleType": "workflow|authorization|validation",
-      "condition": "From <bpmn:conditionExpression> or decision table",
-      "outcome": "What happens when rule is applied",
-      "businessRationale": "From <bpmn:documentation>",
-      "ruleCategory": "workflow",
-      "technicalImplementation": "Technical details: DMN decision tables, expression language (JUEL/Groovy), service references, error handling",
-      "validationCriteria": "Test scenarios: example inputs with expected decision outcomes",
-      "confidence": 0.95
-    }
-  ],
-
-  "solutionComponents": [
-    {
-      "componentName": "From <bpmn:serviceTask name='...'>",
-      "componentLayer": "integration|application",
-      "componentType": "service|integration|adapter",
-      "capability": "From <camunda:connector> configuration",
-      "responsibility": "From task documentation",
-      "technology": "From connector type (REST, SOAP, Kafka, etc.)",
-      "confidence": 0.95
-    }
-  ],
-
-  "dataModels": [
-    {
-      "modelName": "From <bpmn:dataObject name='...'>",
-      "modelType": "value_object|event|document",
-      "description": "From <bpmn:documentation>",
-      "businessDefinition": "What this data means",
-      "fields": [
-        {
-          "fieldName": "From process variables or data properties",
-          "fieldType": "From variable type",
-          "description": "From documentation"
-        }
-      ],
-      "confidence": 0.9
-    }
-  ],
-
   "relationships": [
     {
-      "sourceName": "From task or service name",
-      "sourceType": "business_flow|solution_component",
-      "targetName": "From connected task/service",
-      "targetType": "business_flow|solution_component",
-      "relationshipType": "depends_on|calls|triggers|sends_message_to",
-      "context": "From <bpmn:messageFlow> or <bpmn:sequenceFlow>",
+      "sourceName": "Source process, task, participant",
+      "sourceType": "business_flow|solution_component|business_capability|api|integration",
+      "targetName": "Target process, task, participant",
+      "targetType": "business_flow|solution_component|business_capability|api|integration",
+      "relationshipType": "calls|depends_on|triggers|sends_to|receives_from|implements",
+      "context": "From <bpmn:messageFlow>, <bpmn:sequenceFlow>, call activity reference",
       "confidence": 0.95
     }
   ],
 
   "knowledgeNotes": [
     {
-      "noteType": "architecture|design_decision|constraint",
-      "noteText": "Important observations from BPMN structure",
+      "noteType": "architecture|design|constraint|assumption|risk",
+      "content": "Important BPMN design patterns, decisions, constraints from documentation",
+      "relatedEntity": "Related process, task if applicable",
       "confidence": 0.9
     }
   ]
 }
 
 === CRITICAL RULES ===
-- Extract EXACTLY what's in the BPMN XML structure
-- Use HIGH confidence (0.9-1.0) for explicit BPMN elements
-- ALWAYS extract <bpmn:documentation> - critical for business context
-- Parse <bpmn:conditionExpression> for decision logic
-- Map BPMN elements to our unified schema
-- Preserve process flow order from sequenceFlow connections
-- DO NOT invent data - only extract what's present
+
+**Schema v2 Alignment (MANDATORY):**
+1. ALL 14 entity types MUST be present (empty arrays acceptable)
+2. NO deprecated fields: businessPurpose, businessValue, businessFrequency, businessCriticality at flow level, ruleCategory
+3. EMBED business context into existing fields:
+   - trigger: "event type. Purpose: WHY. Criticality: level"
+   - outcome: "event type. Value: business value"
+   - condition: "[Workflow] [Rationale: purpose] actual expression"
+4. constraints MUST be Map<String,Object> NOT Array
+5. technicalDetails belongs in steps[], NOT at flow level
+6. Use ruleType (not ruleCategory): workflow|validation|authorization|exception
+
+**Anti-Hallucination (MANDATORY):**
+7. Extract EXACTLY what's in BPMN XML - preserve exact element IDs and names
+8. ALWAYS extract <bpmn:documentation> - CRITICAL for business context
+9. Use confidence rubric consistently: 0.9-1.0 (explicit+content), 0.7-0.89 (explicit OR content), 0.5-0.69 (minimal)
+10. DO NOT extract elements with only tag name and no attributes/content
+11. DO NOT invent data - only extract what's explicitly present
+
+**BPMN/Camunda-Specific (MANDATORY):**
+12. Parse <bpmn:conditionExpression> for decision logic - CRITICAL for routing understanding
+13. Preserve process flow order from <bpmn:sequenceFlow> connections
+14. Extract actors from @assignee, candidateUsers, candidateGroups - HIGH PRIORITY
+15. ServiceTasks with connectors map to apis; with delegates map to solutionComponents
+16. Lanes and participants map to businessRoles; external participants may be integrations
+17. Extract domain vocabulary from process/task/data names as businessTerms
+
+**Common Pitfalls to Avoid:**
+❌ DON'T use businessPurpose/businessValue/businessFrequency at flow level - EMBED in trigger/outcome
+❌ DON'T use ruleCategory - use ruleType instead
+❌ DON'T skip <bpmn:documentation> - it contains the business WHY
+❌ DON'T ignore <bpmn:conditionExpression> - critical for decision logic
+❌ DON'T put constraints as array - MUST be object/map
+❌ DON'T skip businessTerms - extract from names and documentation
+❌ DON'T forget actor field in user tasks - HIGH PRIORITY
+❌ DON'T miss camunda:connector configurations for APIs
+
+=== EXTRACTION VALIDATION CHECKLIST ===
+
+Before returning JSON, verify:
+✓ All 14 entity types present (businessRoles, businessTerms, businessPolicies, businessDecisions, businessMetrics, businessCapabilities, solutionComponents, apis, dataModels, integrations, deploymentResources, businessRules, businessFlows, relationships, knowledgeNotes)
+✓ No deprecated fields (businessPurpose, businessValue, businessFrequency, businessCriticality at flow level, ruleCategory)
+✓ constraints is Map<String,Object> not Array
+✓ Confidence scores follow rubric
+✓ trigger/outcome embed business context from documentation
+✓ condition in rules embeds rationale/purpose
+✓ technicalDetails in steps, not flows
+✓ All <bpmn:documentation> content extracted
+✓ All <bpmn:conditionExpression> content parsed
+✓ Valid JSON syntax
 
 === CHUNK TO ANALYZE ===
 

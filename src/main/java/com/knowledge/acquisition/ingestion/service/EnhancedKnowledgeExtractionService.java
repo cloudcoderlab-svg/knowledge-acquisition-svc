@@ -251,17 +251,48 @@ public class EnhancedKnowledgeExtractionService {
   /**
    * Maps platform enum to the chunk-level extraction prompt file name. These prompts are designed
    * for extracting knowledge from individual chunks with document-level context.
+   *
+   * <p><strong>Platform Routing Strategy:</strong>
+   *
+   * <ul>
+   *   <li><b>Platform-Specific Prompts:</b> TIBCO MDM, TIBCO BPM, TIBCO BusinessWorks, Pega BPM,
+   *       and Camunda BPMN have dedicated prompts optimized for their XML semantics, element
+   *       mappings, and domain-specific patterns. These provide superior extraction quality through
+   *       platform-specific anti-hallucination rules and confidence scoring.
+   *   <li><b>Generic Category Prompts:</b> MDM platforms (Informatica, SAP, Oracle, IBM, Reltio,
+   *       Semarchy) share mdm-xml-extraction-prompt.txt. Other workflow/BPM platforms (Activiti,
+   *       JBPM, Flowable, BPMN 2.0, Oracle BPEL, IBM BPM, Appian, SAP Workflow) share
+   *       workflow-xml-extraction-prompt.txt.
+   *   <li><b>Fallback Prompts:</b> Generic XML uses generic-xml-extraction-prompt.txt. CSV uses
+   *       csv-extraction-prompt.txt. All other document types fall back to
+   *       enhanced-chunk-extraction-prompt.txt.
+   * </ul>
+   *
+   * <p><strong>Schema v2 Compliance:</strong> All prompts follow schema v2 with 14 entity types,
+   * anti-hallucination rules, and confidence scoring rubrics aligned with
+   * KnowledgeExtractionResult.java.
+   *
+   * @param platform the detected platform type from XML analysis
+   * @return the classpath resource path to the prompt file for chunk-level extraction
    */
   private String getPlatformSpecificPromptFile(XMLPlatformDetector.XMLPlatform platform) {
     return switch (platform) {
+      // TIBCO platforms with platform-specific prompts (comprehensive XML semantics)
       case TIBCO_MDM -> "prompt/tibco-mdm-extraction-prompt.txt";
       case TIBCO_BPM -> "prompt/tibco-bpm-extraction-prompt.txt";
       case TIBCO_BUSINESSWORKS -> "prompt/tibco-bw-extraction-prompt.txt";
+
+      // Generic MDM prompt shared across 6 MDM platforms (common data modeling patterns)
       case INFORMATICA_MDM, SAP_MDM, ORACLE_MDM, IBM_INFOSPHERE_MDM, RELTIO_MDM, SEMARCHY_MDM ->
           "prompt/mdm-xml-extraction-prompt.txt";
-      case PEGA_BPM,
-              CAMUNDA_BPMN,
-              ACTIVITI_BPMN,
+
+      // Platform-specific BPM/workflow prompts (optimized for platform XML semantics)
+      case PEGA_BPM -> "prompt/pega-bpm-extraction-prompt.txt"; // Pega case types, flows, decisions
+      case CAMUNDA_BPMN ->
+          "prompt/camunda-bpmn-extraction-prompt.txt"; // BPMN 2.0 + Camunda extensions
+
+      // Generic workflow prompt shared across 8 workflow/BPM platforms (common process patterns)
+      case ACTIVITI_BPMN,
               JBPM,
               FLOWABLE_BPMN,
               BPMN_20_GENERIC,
@@ -270,6 +301,8 @@ public class EnhancedKnowledgeExtractionService {
               APPIAN,
               SAP_WORKFLOW ->
           "prompt/workflow-xml-extraction-prompt.txt";
+
+      // Generic and fallback prompts
       case GENERIC_XML -> "prompt/generic-xml-extraction-prompt.txt";
       case CSV_DOCUMENT -> "prompt/csv-extraction-prompt.txt";
       case MARKDOWN_DOCUMENT,
