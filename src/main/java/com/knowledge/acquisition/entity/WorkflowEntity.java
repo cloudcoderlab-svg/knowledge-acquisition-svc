@@ -23,9 +23,6 @@ public class WorkflowEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "module_id")
-  private UUID moduleId;
-
   @Column(name = "workflow_name", nullable = false, columnDefinition = "text")
   private String workflowName;
 

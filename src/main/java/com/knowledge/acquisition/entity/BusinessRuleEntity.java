@@ -23,9 +23,6 @@ public class BusinessRuleEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "module_id")
-  private UUID moduleId;
-
   @Column(name = "component_id")
   private UUID componentId;
 

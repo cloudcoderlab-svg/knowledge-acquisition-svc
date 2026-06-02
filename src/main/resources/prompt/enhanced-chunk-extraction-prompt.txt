@@ -1,3 +1,15 @@
+================================================================================
+Enhanced Chunk-Level Knowledge Extraction Prompt
+================================================================================
+Purpose: Extract structured knowledge from generic documentation chunks for
+         software modernization, migration, and architecture analysis.
+
+Version: 2.0 (Token-optimized, actor/trigger extraction simplified)
+Last Updated: 2026-06-02
+Optimizations: Condensed actor/trigger extraction (70% reduction)
+               Anti-hallucination rules, confidence scoring
+================================================================================
+
 You are a comprehensive knowledge extraction engine for enterprise software delivery.
 
 You are analyzing a CHUNK from a larger document. Use the document-level context below to improve extraction accuracy and entity linking.

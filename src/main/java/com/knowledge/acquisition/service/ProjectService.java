@@ -12,7 +12,6 @@ import com.knowledge.acquisition.exception.NotFoundException;
 import com.knowledge.acquisition.ingestion.service.ai.EmbeddingService;
 import com.knowledge.acquisition.ingestion.util.EmbeddingUtils;
 import com.knowledge.acquisition.repository.ProcessTrackingRepository;
-import com.knowledge.acquisition.repository.ProjectDiscoveryProjection;
 import com.knowledge.acquisition.repository.ProjectRepository;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +21,49 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for managing knowledge ingestion projects and their lifecycle.
+ *
+ * <p>This service provides comprehensive project management capabilities including:
+ *
+ * <ul>
+ *   <li><b>Project Creation:</b> Creates versioned projects with automatic name normalization and
+ *       GCS bucket setup
+ *   <li><b>Project Lifecycle:</b> Manages project status transitions (DRAFT → ACTIVE → SUSPENDED)
+ *   <li><b>Multi-Version Support:</b> Enables multiple versions of the same project to coexist as
+ *       ACTIVE
+ *   <li><b>Definition Management:</b> Auto-generates definition.md templates in GCS for AI
+ *       extraction context
+ *   <li><b>Vector Embeddings:</b> Generates and stores embeddings for project definitions and
+ *       summaries
+ *   <li><b>Process Coordination:</b> Suspends conflicting processes when new versions are activated
+ * </ul>
+ *
+ * <h3>Project Versioning</h3>
+ *
+ * Projects are uniquely identified by their normalized name and version number. Version numbers are
+ * auto-incremented when not explicitly specified. Multiple successfully ingested versions can
+ * coexist as ACTIVE, enabling A/B testing and gradual migration scenarios.
+ *
+ * <h3>GCS Integration</h3>
+ *
+ * Each project is associated with a GCS bucket and prefix where source documents are stored. A
+ * definition.md file is automatically created to provide AI extraction context including domain
+ * information, technology stack, business context, and extraction guidelines.
+ *
+ * <h3>Status Lifecycle</h3>
+ *
+ * <pre>
+ * DRAFT → INGESTING → ACTIVE
+ *                   ↓
+ *               SUSPENDED (for conflicting versions)
+ * </pre>
+ *
+ * @see ProjectEntity
+ * @see ProjectStatus
+ * @see CreateProjectRequest
+ * @see ProjectResponse
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -38,7 +80,7 @@ public class ProjectService {
 
   @Transactional
   public ProjectResponse create(CreateProjectRequest request) {
-    String normalizedName = pathService.slug(request.projectName());
+    String normalizedName = pathService.normalize(request.projectName());
     String sourceBucket = resolveSourceBucket(request.sourceBucket());
     String gcsPrefix = pathService.projectPrefix(normalizedName);
 
@@ -161,25 +203,8 @@ public class ProjectService {
     return projectRepository.findAll().stream().map(this::toResponse).toList();
   }
 
-  public ProjectDiscoveryResponse discover(ProjectDiscoveryRequest request) {
-    int limit = request.limit() == null ? 10 : Math.min(Math.max(request.limit(), 1), 50);
-    String embedding =
-        request.hasEmbedding() ? request.embedding() : definitionEmbedding(request.task());
-    if (embedding == null || embedding.isBlank()) {
-      return new ProjectDiscoveryResponse(request.task(), List.of());
-    }
-
-    double minScore = request.minScore() == null ? 0.0 : request.minScore();
-    List<ProjectDiscoveryResponse.ProjectMatch> matches =
-        projectRepository.searchByDefinitionEmbedding(embedding, limit).stream()
-            .filter(project -> project.getScore() == null || project.getScore() >= minScore)
-            .map(this::toDiscoveryMatch)
-            .toList();
-    return new ProjectDiscoveryResponse(request.task(), matches);
-  }
-
   public ProjectStatusSummaryResponse getProjectStatus(String projectName) {
-    String normalizedName = pathService.slug(projectName);
+    String normalizedName = pathService.normalize(projectName);
     List<ProjectEntity> allVersions =
         projectRepository.findByProjectNameOrderByVersionDesc(normalizedName);
 
@@ -262,7 +287,7 @@ public class ProjectService {
    * @throws NotFoundException if the project version does not exist
    */
   public ProjectEntity findByNameAndVersion(String projectName, Integer version) {
-    String normalizedName = pathService.slug(projectName);
+    String normalizedName = pathService.normalize(projectName);
     return projectRepository
         .findByProjectNameAndVersion(normalizedName, version)
         .orElseThrow(
@@ -288,22 +313,6 @@ public class ProjectService {
         project.getSummaryGeneratedAt());
   }
 
-  private ProjectDiscoveryResponse.ProjectMatch toDiscoveryMatch(
-      ProjectDiscoveryProjection project) {
-    return new ProjectDiscoveryResponse.ProjectMatch(
-        project.getProjectId(),
-        project.getProjectName(),
-        project.getVersion(),
-        project.getTitle(),
-        project.getDescription(),
-        project.getDefinition(),
-        project.getSummary(),
-        project.getSourceBucket(),
-        project.getGcsPrefix(),
-        project.getScore(),
-        "Matched by project summary embedding with definition embedding fallback");
-  }
-
   private String resolveSourceBucket(String sourceBucket) {
     return sourceBucket == null || sourceBucket.isBlank() ? defaultBucketName : sourceBucket;
   }
@@ -320,6 +329,31 @@ public class ProjectService {
     }
   }
 
+  /**
+   * Creates a definition.md file in GCS for the project to provide AI extraction context.
+   *
+   * <p>This file serves as a guide for AI-powered knowledge extraction by providing:
+   *
+   * <ul>
+   *   <li>Domain and architecture context
+   *   <li>Technology stack information
+   *   <li>Business context and workflows
+   *   <li>Known components and services
+   *   <li>Extraction guidelines and naming conventions
+   * </ul>
+   *
+   * <p>If a custom definition is provided, it is used. Otherwise, a default template is generated
+   * with placeholders for manual enrichment.
+   *
+   * @param bucket the GCS bucket name where the definition file will be stored
+   * @param prefix the GCS object prefix (folder path) for the project
+   * @param projectName the project name (used in template generation)
+   * @param version the project version (used in template generation)
+   * @param title the project title (optional, included if provided)
+   * @param description the project description (optional, included if provided)
+   * @param definition custom definition content (optional, falls back to auto-generated template if
+   *     null or blank)
+   */
   private void createProjectDefinition(
       String bucket,
       String prefix,
@@ -328,11 +362,13 @@ public class ProjectService {
       String title,
       String description,
       String definition) {
+    // Use custom definition if provided, otherwise generate default template
     String definitionContent =
         (definition != null && !definition.isBlank())
             ? definition
             : generateDefaultDefinition(projectName, version, title, description);
 
+    // Create blob with metadata indicating management and auto-generation status
     BlobInfo definitionFile =
         BlobInfo.newBuilder(bucket, prefix + "definition.md")
             .setContentType("text/markdown")
@@ -342,14 +378,43 @@ public class ProjectService {
                     "purpose", "project-definition",
                     "auto-generated", String.valueOf(definition == null || definition.isBlank())))
             .build();
+
+    // Write definition.md to GCS
     storage.create(
         definitionFile, definitionContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     log.info("Created definition.md for project: {} (v{})", projectName, version);
   }
 
+  /**
+   * Generates a default definition.md template with placeholders for manual enrichment.
+   *
+   * <p>The generated template includes sections for:
+   *
+   * <ul>
+   *   <li><b>Domain & Architecture:</b> Business domain, source system, target architecture,
+   *       patterns
+   *   <li><b>Technologies:</b> Languages, frameworks, databases, integration methods, cloud
+   *       platform
+   *   <li><b>Business Context:</b> Capabilities, roles, workflows, compliance requirements
+   *   <li><b>Known Components & Services:</b> APIs, services, data entities
+   *   <li><b>Extraction Guidelines:</b> Naming conventions, business glossary, special
+   *       considerations
+   * </ul>
+   *
+   * <p>This template serves as a structured guide for users to provide domain-specific context that
+   * improves AI extraction accuracy and entity recognition.
+   *
+   * @param projectName the project name (used in header)
+   * @param version the project version number
+   * @param title optional project title (included if not blank)
+   * @param description optional project description (included if not blank)
+   * @return markdown-formatted definition template as a string
+   */
   private String generateDefaultDefinition(
       String projectName, int version, String title, String description) {
     StringBuilder template = new StringBuilder();
+
+    // Header with project name and version
     template.append("# Project Definition: ").append(projectName).append("\n\n");
     template.append("**Version:** ").append(version).append("\n\n");
 

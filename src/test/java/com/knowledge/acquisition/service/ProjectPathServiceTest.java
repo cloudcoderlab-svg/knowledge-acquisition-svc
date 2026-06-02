@@ -15,7 +15,7 @@ class ProjectPathServiceTest {
   }
 
   @Test
-  void parsesProjectSlugFromObjectPath() {
+  void parsesProjectNormalizeFromObjectPath() {
     assertThat(service.projectSlugFromObject("projects/customer-onboarding-platform/docs/spec.pdf"))
         .isEqualTo("customer-onboarding-platform");
   }

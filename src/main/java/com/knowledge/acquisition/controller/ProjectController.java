@@ -72,11 +72,6 @@ public class ProjectController {
     return projectService.list();
   }
 
-  @PostMapping("/discovery")
-  public ProjectDiscoveryResponse discover(@Valid @RequestBody ProjectDiscoveryRequest request) {
-    return projectService.discover(request);
-  }
-
   /**
    * Generates a signed URL for uploading files to the project's GCS bucket.
    *

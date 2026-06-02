@@ -69,9 +69,6 @@ public class DataQualityController {
   /** Repository for accessing component entities. */
   private final ComponentRepository componentRepository;
 
-  /** Repository for accessing module entities. */
-  private final ModuleRepository moduleRepository;
-
   /** Repository for accessing integration entities. */
   private final IntegrationRepository integrationRepository;
 
@@ -137,7 +134,6 @@ public class DataQualityController {
     entityCounts.put("businessRules", businessRuleRepository.findByProjectId(projectId).size());
     entityCounts.put("dataModels", dataModelRepository.findByProjectId(projectId).size());
     entityCounts.put("components", componentRepository.findByProjectId(projectId).size());
-    entityCounts.put("modules", moduleRepository.findByProjectId(projectId).size());
     entityCounts.put("integrations", integrationRepository.findByProjectId(projectId).size());
     entityCounts.put("sourceDocuments", sourceDocumentRepository.findByProjectId(projectId).size());
     entityCounts.put("knowledgeChunks", knowledgeChunkRepository.findByProjectId(projectId).size());

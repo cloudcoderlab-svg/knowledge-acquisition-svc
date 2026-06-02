@@ -1,10 +1,43 @@
+-- ============================================================================
+-- Knowledge Engine - Consolidated Database Schema
+-- ============================================================================
+-- Purpose: Single source of truth for all knowledge extraction tables
+-- Version: 3.0 (Consolidated from project-centered-schema + fixes)
+-- Last Updated: 2026-06-02
+--
+-- Key Changes in v3.0:
+-- - All VARCHAR columns converted to TEXT for unlimited string storage
+-- - No post-creation ALTER TABLE migrations required
+-- - Optimal for fresh installations
+--
+-- Schema Overview:
+-- 1. Core Tables: projects, documents, ingestion_documents
+-- 2. Knowledge Tables: domains, subdomains, modules, components
+-- 3. Business Logic: workflows, workflow_steps, business_rules
+-- 4. Architecture: apis, data_models, data_fields, integrations
+-- 5. Relationships: knowledge_relationships (links all entities)
+-- 6. Business Concepts: capabilities, roles, terms, policies, decisions, metrics
+-- 7. Cross-Document Analysis: shared_entities, document_conflicts, document_gaps
+-- 8. Vector Indexes: HNSW indexes for semantic search on embeddings
+-- ============================================================================
+
 -- liquibase formatted sql
 
 -- changeset kengine:project-centered-schema-v1
+-- ============================================================================
+-- Step 1: Create schema and enable required PostgreSQL extensions
+-- ============================================================================
 CREATE SCHEMA IF NOT EXISTS knowledge;
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;  -- pgvector for embeddings
+CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- UUID generation
 
+-- ============================================================================
+-- Step 2: Core Project and Document Management Tables
+-- ============================================================================
+-- These tables manage project metadata, source documents, and processing state
+
+-- Projects table: Top-level container for all knowledge extraction projects
+-- Each project represents a knowledge base (e.g., "legacy-system-analysis")
 CREATE TABLE IF NOT EXISTS knowledge.projects (
     project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_name TEXT NOT NULL,
@@ -25,6 +58,8 @@ CREATE TABLE IF NOT EXISTS knowledge.projects (
     CONSTRAINT uq_projects_name_version UNIQUE (project_name, version)
 );
 
+-- Documents table: Tracks source documents uploaded to GCS for processing
+-- Stores metadata and checksums for deduplication
 CREATE TABLE IF NOT EXISTS knowledge.documents (
     source_document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
@@ -47,6 +82,8 @@ CREATE TABLE IF NOT EXISTS knowledge.documents (
     CONSTRAINT uq_documents_project_source_hash UNIQUE (project_id, source_bucket, source_object, content_hash)
 );
 
+-- Process tracking table: Monitors long-running extraction pipelines
+-- Tracks progress, failures, and completion status for UI/API monitoring
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_engine_processes (
     process_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
@@ -80,6 +117,13 @@ CREATE TABLE IF NOT EXISTS knowledge.ingestion_documents (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================================================
+-- Step 3: Knowledge Source and Chunking Tables
+-- ============================================================================
+-- Manages document chunking and embedding generation for semantic search
+
+-- Source chunks table: Stores text chunks from documents with embeddings
+-- Each chunk represents a semantic unit (e.g., paragraph, section)
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_source_chunks (
     source_chunk_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
@@ -97,6 +141,13 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_source_chunks (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================================================
+-- Step 4: Extracted Knowledge - Domain Model Tables
+-- ============================================================================
+-- Stores structured knowledge extracted from documents via AI
+-- Hierarchical structure: domains → subdomains → modules → components
+
+-- Domains table: Top-level business domains (e.g., "Customer Management")
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_domains (
     domain_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
@@ -126,30 +177,9 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_subdomains (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS knowledge.knowledge_modules (
-    module_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    domain_id UUID REFERENCES knowledge.knowledge_domains(domain_id) ON DELETE SET NULL,
-    subdomain_id UUID REFERENCES knowledge.knowledge_subdomains(subdomain_id) ON DELETE SET NULL,
-    module_name TEXT NOT NULL,
-    module_type TEXT,
-    knowledge TEXT,
-    responsibility TEXT,
-    technology TEXT,
-    owner TEXT,
-    lifecycle TEXT,
-    embedding vector(768),
-    confidence DOUBLE PRECISION,
-    source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL,
-    metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_components (
     component_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     domain_id UUID REFERENCES knowledge.knowledge_domains(domain_id) ON DELETE SET NULL,
     subdomain_id UUID REFERENCES knowledge.knowledge_subdomains(subdomain_id) ON DELETE SET NULL,
     component_name TEXT NOT NULL,
@@ -170,7 +200,6 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_components (
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_business_rules (
     rule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     component_id UUID REFERENCES knowledge.knowledge_components(component_id) ON DELETE SET NULL,
     rule_name TEXT NOT NULL,
     rule_type TEXT,
@@ -188,7 +217,6 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_business_rules (
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_workflows (
     workflow_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     workflow_name TEXT NOT NULL,
     trigger_text TEXT,
     outcome_text TEXT,
@@ -214,7 +242,6 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_workflow_steps (
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_apis (
     api_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     component_id UUID REFERENCES knowledge.knowledge_components(component_id) ON DELETE SET NULL,
     api_name TEXT NOT NULL,
     api_type TEXT,
@@ -228,7 +255,6 @@ CREATE TABLE IF NOT EXISTS knowledge.knowledge_apis (
 CREATE TABLE IF NOT EXISTS knowledge.knowledge_data_models (
     data_model_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES knowledge.projects(project_id) ON DELETE CASCADE,
-    module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     model_name TEXT NOT NULL,
     model_type TEXT,
     schema_definition JSONB,
@@ -322,7 +348,6 @@ CREATE INDEX IF NOT EXISTS idx_ingestion_documents_project_id ON knowledge.inges
 CREATE INDEX IF NOT EXISTS idx_source_chunks_project_id ON knowledge.knowledge_source_chunks(project_id);
 CREATE INDEX IF NOT EXISTS idx_domains_project_id ON knowledge.knowledge_domains(project_id);
 CREATE INDEX IF NOT EXISTS idx_subdomains_project_id ON knowledge.knowledge_subdomains(project_id);
-CREATE INDEX IF NOT EXISTS idx_modules_project_id ON knowledge.knowledge_modules(project_id);
 CREATE INDEX IF NOT EXISTS idx_components_project_id ON knowledge.knowledge_components(project_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_project_id ON knowledge.knowledge_relationships(project_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_project_id ON knowledge.knowledge_chunks(project_id);
@@ -358,26 +383,14 @@ ALTER TABLE knowledge.knowledge_domains
 ALTER TABLE knowledge.knowledge_subdomains
     ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;
 
-ALTER TABLE knowledge.knowledge_modules
-    ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;
-
 ALTER TABLE knowledge.knowledge_components
-    ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;
 
 ALTER TABLE knowledge.knowledge_business_rules
-    ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;
 
 ALTER TABLE knowledge.knowledge_workflows
-    ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;
-
-ALTER TABLE knowledge.knowledge_apis
-    ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL;
-
-ALTER TABLE knowledge.knowledge_data_models
-    ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES knowledge.knowledge_modules(module_id) ON DELETE SET NULL;
 
 ALTER TABLE knowledge.knowledge_relationships
     ADD COLUMN IF NOT EXISTS source_chunk_id UUID REFERENCES knowledge.knowledge_source_chunks(source_chunk_id) ON DELETE SET NULL;

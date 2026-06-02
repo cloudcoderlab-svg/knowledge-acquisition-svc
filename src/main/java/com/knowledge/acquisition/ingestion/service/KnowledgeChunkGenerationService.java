@@ -37,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class KnowledgeChunkGenerationService {
   private final DomainRepository domainRepository;
-  private final ModuleRepository moduleRepository;
   private final ComponentRepository componentRepository;
   private final BusinessRuleRepository businessRuleRepository;
   private final WorkflowRepository workflowRepository;
@@ -86,11 +85,7 @@ public class KnowledgeChunkGenerationService {
       count++;
     }
 
-    // Generate chunks for modules
-    for (ModuleEntity module : moduleRepository.findByProjectId(projectId)) {
-      save(projectId, "module", "knowledge_modules", module.getModuleId(), moduleText(module));
-      count++;
-    }
+    // Modules removed - knowledge_modules table no longer exists
 
     // Generate chunks for components
     for (ComponentEntity component : componentRepository.findByProjectId(projectId)) {
@@ -190,14 +185,7 @@ public class KnowledgeChunkGenerationService {
    * @param module the module entity to convert to text
    * @return formatted text suitable for embedding and search
    */
-  private String moduleText(ModuleEntity module) {
-    return "Module: "
-        + module.getModuleName()
-        + ". Type: "
-        + module.getModuleType()
-        + ". Responsibility: "
-        + text(module.getResponsibility(), module.getKnowledge());
-  }
+  // Removed: moduleText() - module support disabled
 
   /**
    * Generates searchable text representation for a component entity.

@@ -16,23 +16,6 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID> {
           + "ORDER BY p.version DESC, p.createdAt DESC LIMIT 1")
   Optional<ProjectEntity> findByGcsPrefix(@Param("gcsPrefix") String gcsPrefix);
 
-  @Query(
-      value =
-          "select "
-              + "project_id as projectId, "
-              + "project_name as projectName, "
-              + "version, title, description, definition, summary, "
-              + "source_bucket as sourceBucket, "
-              + "gcs_prefix as gcsPrefix, "
-              + "metadata::text as metadata, "
-              + "(1 / (1 + (coalesce(summary_embedding, definition_embedding) <=> cast(:embedding as vector)))) as score "
-              + "from knowledge.projects "
-              + "where coalesce(summary_embedding, definition_embedding) is not null "
-              + "order by coalesce(summary_embedding, definition_embedding) <=> cast(:embedding as vector) limit :limit",
-      nativeQuery = true)
-  List<ProjectDiscoveryProjection> searchByDefinitionEmbedding(
-      @Param("embedding") String embedding, @Param("limit") int limit);
-
   List<ProjectEntity> findByProjectNameOrderByVersionDesc(String projectName);
 
   @Query(

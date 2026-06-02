@@ -40,14 +40,13 @@
     </changeSet>
 
     <changeSet id="increase-varchar-lengths-for-components-modules" author="kengine">
+        <validCheckSum>ANY</validCheckSum>
         <preConditions onFail="MARK_RAN">
             <columnExists schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle"/>
         </preConditions>
         <modifyDataType schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle" newDataType="VARCHAR(100)"/>
-        <modifyDataType schemaName="knowledge" tableName="knowledge_modules" columnName="lifecycle" newDataType="VARCHAR(100)"/>
         <rollback>
             <modifyDataType schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle" newDataType="VARCHAR(50)"/>
-            <modifyDataType schemaName="knowledge" tableName="knowledge_modules" columnName="lifecycle" newDataType="VARCHAR(50)"/>
         </rollback>
     </changeSet>
 

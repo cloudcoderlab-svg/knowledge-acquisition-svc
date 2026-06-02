@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 public class ProjectPathService {
 
   public String projectPrefix(String projectName) {
-    return "projects/" + slug(projectName) + "/";
+    return "projects/" + normalize(projectName) + "/";
   }
 
   public boolean isProjectObject(String objectName) {
@@ -23,7 +23,7 @@ public class ProjectPathService {
     return objectName.split("/")[1];
   }
 
-  String slug(String value) {
+  String normalize(String value) {
     String normalized = Normalizer.normalize(value.trim().toLowerCase(), Normalizer.Form.NFD);
     return normalized.replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
   }

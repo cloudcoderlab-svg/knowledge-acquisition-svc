@@ -115,39 +115,6 @@ public class ProcessingController {
   }
 
   /**
-   * Lists all processes for a specific project version identified by name and version number.
-   *
-   * <p>The project name is automatically normalized to kebab-case, so "My Project" and "my-project"
-   * refer to the same project.
-   *
-   * @param projectName the project name (will be normalized to kebab-case)
-   * @param version the project version number
-   * @return list of all processes ordered by creation date (most recent first)
-   * @throws NotFoundException if the project version does not exist
-   */
-  @GetMapping("/api/v1/processing/{projectName}/versions/{version}/processes")
-  public List<ProcessResponse> listByVersion(
-      @PathVariable String projectName, @PathVariable Integer version) {
-    return processingService.listByProjectVersion(projectName, version);
-  }
-
-  /**
-   * Gets a processing summary for a specific project version identified by name and version number.
-   *
-   * <p>The project name is automatically normalized to kebab-case.
-   *
-   * @param projectName the project name (will be normalized to kebab-case)
-   * @param version the project version number
-   * @return processing summary with aggregated statistics
-   * @throws NotFoundException if the project version does not exist
-   */
-  @GetMapping("/api/v1/processing/{projectName}/versions/{version}/processes/summary")
-  public ProcessingSummaryResponse getSummaryByVersion(
-      @PathVariable String projectName, @PathVariable Integer version) {
-    return processingService.getProcessingSummaryByVersion(projectName, version);
-  }
-
-  /**
    * Retrieves detailed information about a specific process by its ID.
    *
    * <p>This endpoint can be used to monitor process progress, check status, and retrieve error

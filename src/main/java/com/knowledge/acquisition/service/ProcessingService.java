@@ -15,6 +15,64 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for orchestrating knowledge acquisition processing workflows.
+ *
+ * <p>This service manages the complete processing pipeline for knowledge ingestion projects,
+ * including document ingestion, cross-document consolidation, and planning artifact generation.
+ * Each process is tracked with detailed status, progress metrics, and failure information.
+ *
+ * <h3>Processing Workflow Types</h3>
+ *
+ * <ol>
+ *   <li><b>PROJECT_INGESTION:</b> Extracts knowledge from source documents in GCS
+ *       <ul>
+ *         <li>Parses documents (PDF, DOCX, HTML, etc.)
+ *         <li>Extracts structured entities (workflows, APIs, data models, business rules)
+ *         <li>Generates document chunks with embeddings
+ *         <li>Tracks progress per file with token/byte metrics
+ *       </ul>
+ *   <li><b>CROSS_DOCUMENT_CONSOLIDATION:</b> Analyzes relationships across ingested documents
+ *       <ul>
+ *         <li>Infers relationships between entities from different documents
+ *         <li>Generates consolidated knowledge chunks
+ *         <li>Updates cross-references and dependencies
+ *       </ul>
+ *   <li><b>PLANNING_GENERATION:</b> Generates planning artifacts from ingested knowledge
+ *       <ul>
+ *         <li>Creates domain-based EPICs, FEATUREs, USER_STORYs
+ *         <li>Generates acceptance criteria
+ *         <li>Structures planning hierarchy
+ *       </ul>
+ *   <li><b>PROJECT_SUMMARY:</b> Generates high-level project summary
+ *       <ul>
+ *         <li>Summarizes ingested knowledge
+ *         <li>Generates summary embedding for semantic search
+ *       </ul>
+ * </ol>
+ *
+ * <h3>Process Tracking</h3>
+ *
+ * Each process is tracked with:
+ *
+ * <ul>
+ *   <li>Status: RUNNING, COMPLETED, PARTIAL_SUCCESS, FAILED
+ *   <li>Progress: total files, processed files, failed files
+ *   <li>Metrics: bytes processed, tokens consumed
+ *   <li>Timing: start time, completion time
+ *   <li>Error details: failure cause, current file on failure
+ * </ul>
+ *
+ * <h3>Asynchronous Execution</h3>
+ *
+ * All processes run asynchronously and return immediately with a process tracking ID. Clients can
+ * poll the process status using the tracking ID or monitor via the live monitoring endpoint.
+ *
+ * @see ProcessTrackingEntity
+ * @see ProcessResponse
+ * @see ProcessingSummaryResponse
+ * @see IngestionProcessRunner
+ */
 @Service
 @RequiredArgsConstructor
 public class ProcessingService {
@@ -138,40 +196,6 @@ public class ProcessingService {
     return processRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
         .map(this::toResponse)
         .toList();
-  }
-
-  /**
-   * Lists all processes for a specific project version identified by name and version.
-   *
-   * <p>The project name is normalized to kebab-case before lookup, allowing flexible name matching.
-   *
-   * @param projectName the project name (will be normalized)
-   * @param version the version number
-   * @return list of processes ordered by creation date (most recent first)
-   * @throws NotFoundException if the project version does not exist
-   */
-  public List<ProcessResponse> listByProjectVersion(String projectName, Integer version) {
-    var project = projectService.findByNameAndVersion(projectName, version);
-    return processRepository.findByProjectIdOrderByCreatedAtDesc(project.getProjectId()).stream()
-        .map(this::toResponse)
-        .toList();
-  }
-
-  /**
-   * Gets a processing summary for a specific project version identified by name and version.
-   *
-   * <p>This is a convenience method that looks up the project by name and version, then delegates
-   * to {@link #getProcessingSummary(UUID)}.
-   *
-   * @param projectName the project name (will be normalized)
-   * @param version the version number
-   * @return processing summary with aggregated statistics
-   * @throws NotFoundException if the project version does not exist
-   */
-  public ProcessingSummaryResponse getProcessingSummaryByVersion(
-      String projectName, Integer version) {
-    var project = projectService.findByNameAndVersion(projectName, version);
-    return getProcessingSummary(project.getProjectId());
   }
 
   public ProcessingSummaryResponse getProcessingSummary(UUID projectId) {

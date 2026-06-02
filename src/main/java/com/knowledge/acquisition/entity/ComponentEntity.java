@@ -23,9 +23,6 @@ public class ComponentEntity {
   @Column(name = "project_id", nullable = false)
   private UUID projectId;
 
-  @Column(name = "module_id")
-  private UUID moduleId;
-
   @Column(name = "domain_id")
   private UUID domainId;
 
