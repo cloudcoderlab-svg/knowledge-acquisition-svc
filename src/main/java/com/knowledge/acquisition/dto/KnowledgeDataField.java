@@ -47,6 +47,15 @@ public class KnowledgeDataField {
   private String description;
 
   /**
+   * Business meaning of this field in business terms.
+   *
+   * <p>Used by source code extraction to capture what this field represents from a business
+   * perspective. Example: "Customer's primary email address for communication and account
+   * verification".
+   */
+  private String businessMeaning;
+
+  /**
    * Validation constraints and business rules for this field. May include min/max values, regex
    * patterns, allowed values, etc.
    */

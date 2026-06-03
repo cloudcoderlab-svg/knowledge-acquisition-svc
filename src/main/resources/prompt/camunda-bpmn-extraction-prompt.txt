@@ -151,6 +151,14 @@ Apply confidence scores based on the quality and completeness of information ext
 
 === OUTPUT FORMAT ===
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema below
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, painPoints, trigger, condition, outcome MUST be strings
+- Use semicolon-separated values within a single string for multiple items in string fields
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], kpis[], needs[]
+
 Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 {
@@ -159,7 +167,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
   "businessRoles": [
     {
       "roleName": "From <bpmn:lane name='...'>, @assignee, candidateGroups",
-      "responsibilities": "From lane documentation, task assignments",
+      "responsibilities": "MUST BE STRING (NOT ARRAY). From lane documentation, task assignments. If multiple, use semicolon-separated: 'Process applications; Verify documents; Approve requests'",
       "confidence": 0.95
     }
   ],
@@ -169,7 +177,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
       "termName": "From process/task names, data object names, domain vocabulary",
       "businessDefinition": "Business meaning from <bpmn:documentation>",
       "technicalDefinition": "Process variable name, data type",
-      "synonyms": ["Alternate names from aliases"],
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated alternate names. Example: 'Customer; Client; Account Holder'",
       "category": "domain|process|metric|role|entity",
       "confidence": 0.95
     }
@@ -179,8 +187,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "policyName": "From timer events, SLA requirements, boundary events",
       "policyType": "operational|compliance|sla|timeout",
-      "description": "Policy statement from documentation",
-      "enforcementMechanism": "How policy is enforced (timer, boundary event, escalation)",
+      "description": "MUST BE STRING. Policy statement from documentation",
+      "enforcementMechanism": "MUST BE STRING. How policy is enforced (timer, boundary event, escalation)",
       "confidence": 0.95
     }
   ],
@@ -189,7 +197,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "decisionName": "From <bpmn:exclusiveGateway name='...'>, <bpmn:inclusiveGateway>",
       "decisionType": "approval|classification|routing|eligibility",
-      "criteria": "From <bpmn:conditionExpression> on outgoing flows",
+      "criteria": "MUST BE STRING. From <bpmn:conditionExpression> on outgoing flows",
       "possibleOutcomes": ["From outgoing sequenceFlow @name attributes"],
       "confidence": 0.95
     }
@@ -199,9 +207,9 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "metricName": "From <bpmn:timerEvent>, SLA documentation",
       "metricType": "sla|performance|duration",
-      "description": "What is measured (process duration, SLA target)",
-      "targetValue": "From timer duration, cycle expression, documentation",
-      "measurementMethod": "Timer expression, SLA tracking",
+      "description": "MUST BE STRING. What is measured (process duration, SLA target)",
+      "targetValue": "MUST BE STRING. From timer duration, cycle expression, documentation",
+      "measurementMethod": "MUST BE STRING. Timer expression, SLA tracking",
       "confidence": 0.95
     }
   ],
@@ -210,8 +218,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "capabilityName": "From high-level process name, pool participant name - WHAT the business does",
       "capabilityType": "core|supporting|enabling",
-      "description": "Business function performed, technology-independent",
-      "businessValue": "Why this capability matters (from documentation)",
+      "description": "MUST BE STRING. Business function performed, technology-independent",
+      "businessValue": "MUST BE STRING. Why this capability matters (from documentation)",
       "confidence": 0.95
     }
   ],
@@ -220,7 +228,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "componentName": "From <bpmn:serviceTask>, <bpmn:scriptTask>, listeners - HOW it's implemented",
       "componentType": "service|integration|script|listener|adapter",
-      "description": "Technical implementation (delegate class, script, listener)",
+      "description": "MUST BE STRING. Technical implementation (delegate class, script, listener)",
       "technologyStack": ["From camunda:class, scriptFormat, connector type"],
       "confidence": 0.95
     }
@@ -268,8 +276,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
             "format": "From validation attributes"
           }
         }
-      ],
-      "confidence": 0.95
+      ]
     }
   ],
 
@@ -300,12 +307,12 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "ruleName": "From <bpmn:businessRuleTask name='...'>, <bpmn:boundaryEvent>, <bpmn:conditionExpression>",
       "ruleType": "workflow|validation|authorization|exception",
-      "condition": "From <bpmn:conditionExpression>, decision table reference. Format: '[Workflow] [Rationale: purpose] expression'",
-      "outcome": "What happens when rule applied. Format: 'outcome. Impact: impact text'",
+      "condition": "MUST BE STRING (NOT ARRAY). From <bpmn:conditionExpression>, decision table reference. Format: '[Workflow] [Rationale: purpose] expression'. If multiple conditions, use semicolon-separated",
+      "outcome": "MUST BE STRING (NOT ARRAY). What happens when rule applied. Format: 'outcome. Impact: impact text'. If multiple outcomes, use semicolon-separated",
       "sourceBusinessComponentName": "Process containing this rule",
       "priority": "critical|high|medium|low",
-      "technicalImplementation": "DMN decision tables, expression language (JUEL/Groovy), error handling, escalation",
-      "validationCriteria": "Test scenarios: example inputs with expected decision outcomes",
+      "technicalImplementation": "MUST BE STRING. DMN decision tables, expression language (JUEL/Groovy), error handling, escalation",
+      "validationCriteria": "MUST BE STRING. Test scenarios: example inputs with expected decision outcomes",
       "confidence": 0.95
     }
   ],
@@ -313,9 +320,9 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
   "businessFlows": [
     {
       "flowName": "From <bpmn:process name='...'> or @id",
-      "trigger": "From <bpmn:startEvent>. Format: 'event type. Purpose: WHY from documentation. Criticality: level'",
-      "outcome": "From <bpmn:endEvent>. Format: 'event type. Value: business value from documentation'",
-      "owner": "From process owner in documentation, pool lane",
+      "trigger": "MUST BE STRING (NOT ARRAY). From <bpmn:startEvent>. Format: 'event type. Purpose: WHY from documentation. Criticality: level'",
+      "outcome": "MUST BE STRING (NOT ARRAY). From <bpmn:endEvent>. Format: 'event type. Value: business value from documentation'",
+      "owner": "MUST BE STRING. From process owner in documentation, pool lane",
       "steps": [
         {
           "sequence": 1,
@@ -358,6 +365,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 === CRITICAL RULES ===
 
+IMPORTANT: dataModels do NOT have a confidence field - do not include it in the output
+
 **Schema v2 Alignment (MANDATORY):**
 1. ALL 14 entity types MUST be present (empty arrays acceptable)
 2. NO deprecated fields: businessPurpose, businessValue, businessFrequency, businessCriticality at flow level, ruleCategory
@@ -393,6 +402,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 ❌ DON'T skip businessTerms - extract from names and documentation
 ❌ DON'T forget actor field in user tasks - HIGH PRIORITY
 ❌ DON'T miss camunda:connector configurations for APIs
+
+CRITICAL: String fields MUST be single string values, NOT arrays. If you return arrays for string fields, deserialization will fail. Use semicolon or comma-separated values within a single string for multiple items.
 
 === EXTRACTION VALIDATION CHECKLIST ===
 

@@ -53,14 +53,33 @@ public class NoteEntity {
   /**
    * Type classification for this note.
    *
-   * <p>Values: architecture, design_decision, constraint, assumption, risk, recommendation.
+   * <p>Values: architecture, design_decision, constraint, assumption, risk, recommendation,
+   * migration, technical_debt, code_smell, etc.
    */
   @Column(name = "note_type", columnDefinition = "text")
   private String noteType;
 
+  /**
+   * Brief topic or title for this knowledge note.
+   *
+   * <p>Used by source code extraction prompt to provide a concise summary. Examples: "Database
+   * Connection Pooling", "Exception Handling Pattern".
+   */
+  @Column(name = "topic", columnDefinition = "text")
+  private String topic;
+
   /** The actual note content. */
   @Column(name = "note_text", columnDefinition = "text", nullable = false)
   private String noteText;
+
+  /**
+   * Name of the related entity, component, workflow, or capability this note applies to.
+   *
+   * <p>Used by platform-specific extraction prompts to link notes to specific entities. Examples:
+   * "OrderManagementWorkflow", "CustomerDataModel", "PaymentService".
+   */
+  @Column(name = "related_entity", columnDefinition = "text")
+  private String relatedEntity;
 
   /** Semantic embedding vector for similarity search (768 dimensions). */
   @Column(name = "embedding")

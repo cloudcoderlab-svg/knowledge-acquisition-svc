@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Orchestrates document parsing by routing to the appropriate content extractor. Routes multimodal
- * file types (PDF, images, Office docs) to Gemini extractor. Routes text-only file types to Tika
- * extractor.
+ * file types (PDF, images, Office docs) to Gemini extractor. Routes text-only file types (including
+ * source code files like Java, Python, PHP, JSP) to Tika extractor.
  */
 @Slf4j
 @Component
@@ -48,7 +48,12 @@ public class DocumentParserOrchestrator {
           "properties",
           "sql",
           "html",
-          "htm");
+          "htm",
+          "java",
+          "py",
+          "jsp",
+          "php",
+          "fmb");
 
   private static final Set<String> VISUAL_AND_OFFICE_TYPES =
       Set.of(

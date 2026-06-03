@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +24,17 @@ public class KnowledgeAPI {
   private String httpMethod;
   private String endpointPath;
   private String description;
+
+  @JsonAlias("inputParameters")
   private Map<String, Object> requestSchema;
+
+  @JsonAlias("outputParameters")
   private Map<String, Object> responseSchema;
+
   private String authentication;
+  private String sourceComponentName;
+  private String businessCapability;
+  private Double confidence;
   private List<Double> embedding;
   private OffsetDateTime createdAt;
 }

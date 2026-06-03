@@ -21,6 +21,7 @@ public class KnowledgeDataModel {
   private String modelName;
   private String modelType;
   private String description;
+  private String businessDefinition;
   private Map<String, Object> schemaDefinition;
   private List<Double> embedding;
   private List<KnowledgeDataField> fields;

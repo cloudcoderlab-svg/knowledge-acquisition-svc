@@ -330,22 +330,30 @@ Extract in this sequence for maximum context and consistency:
 JSON OUTPUT SCHEMA
 ===========================
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema below
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, painPoints, trigger, condition, outcome MUST be strings
+- Use semicolon-separated values within a single string for multiple items in string fields
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], kpis[], needs[]
+
 Return ONLY valid JSON using this exact structure (aligned with schema v2):
 
 {
-  "architecturalSummary": "High-level summary of what this XML chunk describes",
+  "architecturalSummary": "MUST BE STRING. High-level summary of what this XML chunk describes",
 
   "businessRoles": [
     {
-      "roleName": "From @name or <Role> element",
-      "roleType": "internal|external|system|partner",
-      "description": "From <Description> or text content",
-      "responsibilities": "From @responsibilities or <Responsibilities>",
-      "department": "From @department or <Department>",
-      "businessCapability": "From @capability or linked capability",
-      "persona": "From @persona if user-focused role",
+      "roleName": "MUST BE STRING. From @name or <Role> element",
+      "roleType": "MUST BE STRING. One of: internal|external|system|partner",
+      "description": "MUST BE STRING. From <Description> or text content",
+      "responsibilities": "MUST BE STRING (NOT ARRAY). From @responsibilities or <Responsibilities>. If multiple, use semicolon-separated: 'Approve workflows; Review data; Manage users'",
+      "department": "MUST BE STRING. From @department or <Department>",
+      "businessCapability": "MUST BE STRING. From @capability or linked capability",
+      "persona": "MUST BE STRING. From @persona if user-focused role",
       "needs": ["From <Needs> or <Requirements> elements"],
-      "painPoints": "From <PainPoints> or <Challenges>",
+      "painPoints": "MUST BE STRING (NOT ARRAY). From <PainPoints> or <Challenges>. If multiple, use semicolon-separated",
       "workflowsInvolved": ["Workflow names this role participates in"],
       "confidence": 0.0
     }
@@ -410,7 +418,7 @@ Return ONLY valid JSON using this exact structure (aligned with schema v2):
       "termName": "From @name or <Term> element",
       "businessDefinition": "Business meaning from <BusinessDefinition>",
       "technicalDefinition": "Technical meaning from <TechnicalDefinition>",
-      "synonyms": ["From <Synonyms> or <Aliases>"],
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated values from <Synonyms> or <Aliases>. Example: 'Customer; Client; Party; Account Holder'",
       "category": "domain|process|metric|role|entity",
       "confidence": 0.0
     }
@@ -483,8 +491,7 @@ Return ONLY valid JSON using this exact structure (aligned with schema v2):
           "isRequired": false,
           "description": "From <Description> or @description"
         }
-      ],
-      "confidence": 0.0
+      ]
     }
   ],
 
@@ -522,6 +529,8 @@ Return ONLY valid JSON using this exact structure (aligned with schema v2):
 ===========================
 CRITICAL RULES
 ===========================
+
+IMPORTANT: dataModels do NOT have a confidence field - do not include it in the output
 
 1. **JSON Structure Alignment:**
    - MUST match exact field names in schema v2

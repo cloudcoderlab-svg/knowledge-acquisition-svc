@@ -42,6 +42,7 @@ These prompts are shared across multiple platforms with similar patterns:
 | **Generic Workflow** | Activiti, JBPM, Flowable, BPMN 2.0, Oracle BPEL, IBM BPM, Appian, SAP Workflow | `workflow-xml-extraction-prompt.txt` |
 | **Generic XML** | Any XML without specific platform detection | `generic-xml-extraction-prompt.txt` |
 | **CSV** | CSV/TSV tabular data | `csv-extraction-prompt.txt` |
+| **Source Code** | Java, Python, PHP, JSP, SQL, Oracle Forms (.fmb) | `source-code-extraction-prompt.txt` |
 | **Generic Documents** | Markdown, Text, PDF, Word, PowerPoint, Images | `enhanced-chunk-extraction-prompt.txt` |
 
 ## Schema v2 Compliance

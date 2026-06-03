@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,6 +51,7 @@ public class BusinessTerm {
    * understandable to business stakeholders. Example: "An Order is a customer's request to purchase
    * one or more products or services."
    */
+  @JsonAlias("definition")
   private String businessDefinition;
 
   /**
@@ -62,12 +64,19 @@ public class BusinessTerm {
   private String technicalDefinition;
 
   /**
-   * Synonyms or alternative names for this term.
+   * Business context describing where and how this term is used in business logic.
+   *
+   * <p>Particularly useful from source code extraction to understand term usage patterns.
+   */
+  private String businessContext;
+
+  /**
+   * Synonyms or alternative names for this term (semicolon-separated).
    *
    * <p>Other terms that refer to the same concept, including legacy names, regional variations, or
-   * system-specific aliases. Example: ["Purchase", "Sales Order"] for "Order".
+   * system-specific aliases. Example: "Purchase; Sales Order; Customer Order" for "Order".
    */
-  private List<String> synonyms;
+  private String synonyms;
 
   /**
    * Category classification for this term.
@@ -80,8 +89,13 @@ public class BusinessTerm {
    *   <li><b>metric</b> - Measurement or KPI term
    *   <li><b>role</b> - Role or actor designation
    *   <li><b>entity</b> - Data entity or model term
+   *   <li><b>glossary</b> - General glossary term (source code extraction)
+   *   <li><b>abbreviation</b> - Abbreviated term (source code extraction)
+   *   <li><b>acronym</b> - Acronym (source code extraction)
+   *   <li><b>domain_concept</b> - Domain-specific concept (source code extraction)
    * </ul>
    */
+  @JsonAlias("termType")
   private String category;
 
   /**

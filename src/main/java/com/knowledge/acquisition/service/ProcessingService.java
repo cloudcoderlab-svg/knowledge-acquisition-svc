@@ -91,23 +91,45 @@ public class ProcessingService {
 
   public ProcessResponse startIngestion(UUID projectId) {
     var project = projectService.find(projectId);
+
+    // Get processable files (exclude directories and definition.md)
+    List<String> files =
+        fileService.listFiles(projectId).stream()
+            .filter(file -> !file.endsWith("/"))
+            .filter(file -> !file.endsWith("definition.md"))
+            .toList();
+
+    // Validate that there are processable files
+    if (files.isEmpty()) {
+      ProcessTrackingEntity failedProcess =
+          processRepository.save(
+              ProcessTrackingEntity.builder()
+                  .projectId(projectId)
+                  .processType("PROJECT_INGESTION")
+                  .status("FAILED")
+                  .totalFiles(0)
+                  .processedFiles(0)
+                  .failedFiles(0)
+                  .startedAt(OffsetDateTime.now())
+                  .completedAt(OffsetDateTime.now())
+                  .failureCause(
+                      "No processable files found in project. Only definition.md or empty folder detected. "
+                          + "Please upload documents (PDF, DOCX, XML, etc.) to start ingestion.")
+                  .build());
+      return toResponse(failedProcess);
+    }
+
     ProcessTrackingEntity process =
         processRepository.save(
             ProcessTrackingEntity.builder()
                 .projectId(projectId)
                 .processType("PROJECT_INGESTION")
                 .status("RUNNING")
-                .totalFiles(0)
+                .totalFiles(files.size())
                 .processedFiles(0)
                 .failedFiles(0)
                 .startedAt(OffsetDateTime.now())
                 .build());
-    List<String> files =
-        fileService.listFiles(projectId).stream()
-            .filter(file -> !file.endsWith("/"))
-            .filter(file -> !file.endsWith("definition.md"))
-            .toList();
-    process.setTotalFiles(files.size());
     process.setFileList(toJsonArray(files));
     processRepository.save(process);
 

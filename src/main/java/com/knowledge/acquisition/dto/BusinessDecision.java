@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,6 +43,14 @@ public class BusinessDecision {
   private String decisionName;
 
   /**
+   * Type classification for this decision.
+   *
+   * <p>Possible values from source code extraction: approval, routing, prioritization, calculation,
+   * eligibility.
+   */
+  private String decisionType;
+
+  /**
    * The question or choice that needs to be made at this decision point.
    *
    * <p>Phrased as a question that requires an answer. Examples: "Should credit be approved?",
@@ -63,6 +72,7 @@ public class BusinessDecision {
    * <p>Should reference role names from document-level analysis for linking. May be a human role
    * (e.g., "Manager", "Approver") or system role (e.g., "Automated Rules Engine").
    */
+  @JsonAlias("decisionMaker")
   private String decisionMakerRole;
 
   /**
@@ -71,6 +81,7 @@ public class BusinessDecision {
    * <p>List of possible results or actions that can be taken. Examples: ["Approve", "Deny",
    * "Escalate"], ["Standard Shipping", "Express Shipping", "Same-Day Delivery"].
    */
+  @JsonAlias("possibleOutcomes")
   private List<String> decisionOptions;
 
   /**

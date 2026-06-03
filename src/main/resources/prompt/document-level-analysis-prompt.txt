@@ -21,15 +21,21 @@ EXTRACTION GUIDELINES:
 4. Prioritize entities that are defined or described over those merely mentioned
 5. For multi-architecture documents, choose the primary/dominant pattern
 
+FIELD TYPE ENFORCEMENT:
+- All string fields MUST return a SINGLE STRING VALUE (not an array)
+- If multiple values exist for a string field, choose the PRIMARY/MOST IMPORTANT one
+- Use "Not specified" for empty string fields (never use empty arrays for string fields)
+- Array fields are clearly marked with [] in the schema below
+
 Return ONLY valid JSON:
 
 {
-  "overallArchitecture": "High-level architecture description (e.g., microservices, event-driven, layered, SOA, monolithic). Use 'Not specified' if unclear.",
-  "systemSummary": "1-2 paragraph summary of what this document describes - include both technical and business context based ONLY on document content",
-  "documentType": "technical_spec|business_requirements|user_guide|api_documentation|architecture_doc|data_model|workflow_definition|config_file|mixed",
-  "domain": "Primary business domain explicitly mentioned (e.g., E-Commerce, Finance, Healthcare, HR). Use 'Not specified' if not stated.",
-  "domainDescription": "ONLY if the domain is explicitly described in the document, provide 2-3 sentences. Otherwise use 'Not specified'.",
-  "subdomain": "More specific subdomain if explicitly identifiable (e.g., Order Management, Payment Processing). Use 'Not specified' if not present.",
+  "overallArchitecture": "MUST BE STRING. High-level architecture description (e.g., microservices, event-driven, layered, SOA, monolithic). Use 'Not specified' if unclear.",
+  "systemSummary": "MUST BE STRING. 1-2 paragraph summary of what this document describes - include both technical and business context based ONLY on document content",
+  "documentType": "MUST BE STRING. One of: technical_spec|business_requirements|user_guide|api_documentation|architecture_doc|data_model|workflow_definition|config_file|mixed",
+  "domain": "MUST BE STRING. Primary business domain explicitly mentioned (e.g., E-Commerce, Finance, Healthcare, HR). Use 'Not specified' if not stated.",
+  "domainDescription": "MUST BE STRING. ONLY if the domain is explicitly described in the document, provide 2-3 sentences. Otherwise use 'Not specified'.",
+  "subdomain": "MUST BE STRING (NOT ARRAY). If multiple subdomains exist, choose the PRIMARY one. More specific subdomain if explicitly identifiable (e.g., Order Management, Payment Processing). Use 'Not specified' if not present.",
 
   "keyPatterns": [
     "3-10 architectural patterns explicitly mentioned (e.g., CQRS, Event Sourcing, API Gateway, Service Mesh, Repository Pattern)"
@@ -76,6 +82,7 @@ IMPORTANT:
 - Empty arrays are valid if the document lacks that information type
 - Prioritize quality over quantity: better to extract 5 well-defined entities than 20 trivial mentions
 - This analysis feeds chunk-level extraction, so consistency in entity naming is critical
+- CRITICAL: All string fields (overallArchitecture, systemSummary, documentType, domain, domainDescription, subdomain) MUST be single string values, NOT arrays. If you return an array for these fields, deserialization will fail.
 
 Document to analyze:
 

@@ -302,6 +302,9 @@ public class EnhancedKnowledgeExtractionService {
               SAP_WORKFLOW ->
           "prompt/workflow-xml-extraction-prompt.txt";
 
+      // Source code extraction prompt for Java, Python, PHP, JSP, SQL, Oracle Forms
+      case SOURCE_CODE_DOCUMENT -> "prompt/source-code-extraction-prompt.txt";
+
       // Generic and fallback prompts
       case GENERIC_XML -> "prompt/generic-xml-extraction-prompt.txt";
       case CSV_DOCUMENT -> "prompt/csv-extraction-prompt.txt";

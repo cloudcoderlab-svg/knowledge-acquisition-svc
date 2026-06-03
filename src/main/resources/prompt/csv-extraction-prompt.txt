@@ -207,17 +207,25 @@ JSON Output (partial):
 
 === OUTPUT SCHEMA ===
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, condition, outcome, etc. MUST be strings
+- Use comma-separated or semicolon-separated values within a single string for multiple items
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], decisionOptions[]
+
 Return ONLY valid JSON with this structure (omit empty arrays):
 
 {
-  "architecturalSummary": "Brief summary of what this CSV describes (e.g., 'Field mappings between legacy and new system', 'Validation rules for customer data')",
+  "architecturalSummary": "MUST BE STRING. Brief summary of what this CSV describes (e.g., 'Field mappings between legacy and new system', 'Validation rules for customer data')",
 
   "businessRoles": [
     {
-      "roleName": "Exact role name from CSV",
-      "roleType": "internal|external|system|partner",
-      "description": "",
-      "responsibilities": "What this role owns or does based on CSV context",
+      "roleName": "MUST BE STRING. Exact role name from CSV",
+      "roleType": "MUST BE STRING. One of: internal|external|system|partner",
+      "description": "MUST BE STRING",
+      "responsibilities": "MUST BE STRING (NOT ARRAY). What this role owns or does based on CSV context. If multiple, use semicolon-separated: 'Owns mapping; Reviews data; Approves changes'",
       "confidence": 0.0
     }
   ],
@@ -226,10 +234,9 @@ Return ONLY valid JSON with this structure (omit empty arrays):
     {
       "ruleName": "Descriptive rule name (can derive from condition if not explicit)",
       "ruleType": "validation|calculation|authorization|workflow|policy|eligibility",
-      "condition": "Exact condition from CSV cell",
-      "outcome": "Expected result or action",
+      "condition": "MUST BE STRING. Exact condition from CSV cell. Rationale: WHY (if stated in CSV)",
+      "outcome": "MUST BE STRING. Expected result or action. Impact: business impact if stated",
       "priority": "critical|high|medium|low",
-      "businessRationale": "WHY (if stated in CSV)",
       "technicalImplementation": "Formulas, transformations, error codes from CSV cells",
       "validationCriteria": "Test scenarios if provided",
       "confidence": 0.0
@@ -239,9 +246,8 @@ Return ONLY valid JSON with this structure (omit empty arrays):
   "businessFlows": [
     {
       "flowName": "Workflow/process name from CSV",
-      "trigger": "",
-      "outcome": "",
-      "businessCriticality": "critical|high|medium|low",
+      "trigger": "Trigger event. Criticality: critical|high|medium|low if stated",
+      "outcome": "Expected outcome. Value: business value if stated",
       "steps": [
         {
           "sequence": 1,
@@ -272,6 +278,7 @@ Return ONLY valid JSON with this structure (omit empty arrays):
       "termName": "Term from glossary columns",
       "businessDefinition": "Definition from CSV",
       "technicalDefinition": "Technical meaning if provided",
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated alternative terms from CSV. Example: 'Customer; Client; Account Holder'",
       "category": "domain|process|metric|role|entity",
       "confidence": 0.0
     }
@@ -362,3 +369,5 @@ IMPORTANT REMINDERS:
 - Empty arrays are preferred over hallucinated data
 - Preserve exact CSV header names and cell values in technical fields
 - NO markdown, NO explanations, ONLY JSON
+- CRITICAL: String fields (roleName, description, responsibilities, condition, outcome, etc.) MUST be single string values, NOT arrays. If you return arrays for string fields, deserialization will fail. Use semicolon or comma-separated values within a single string for multiple items.
+- NOTE: dataModels do NOT have a confidence field - do not include it in the output

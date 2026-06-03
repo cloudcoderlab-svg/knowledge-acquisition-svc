@@ -57,13 +57,19 @@ Document to classify:
 {{CONTENT}}
 -----------------------
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema
+- If multiple values exist for a string field, choose the PRIMARY/MOST IMPORTANT one
+- Use empty string "" for missing string fields (never use arrays for string fields)
+
 Return ONLY valid JSON in this exact format:
 
 {
-  "primaryDomain": "The main domain from the list above",
-  "subdomain": "More specific subdomain if identifiable",
-  "documentType": "Type of document from the list above",
-  "contentFocus": "business|technical|mixed",
+  "primaryDomain": "MUST BE STRING. The main domain from the list above",
+  "subdomain": "MUST BE STRING (NOT ARRAY). More specific subdomain if identifiable",
+  "documentType": "MUST BE STRING. Type of document from the list above",
+  "contentFocus": "MUST BE STRING. One of: business|technical|mixed",
   "businessCapabilities": [
     "List of business capabilities this supports (e.g., Customer Onboarding, Order Processing, etc.)"
   ],
@@ -104,3 +110,4 @@ CLASSIFICATION RULES:
 - Multi-domain documents should use "mixed" contentFocus and list capabilities in both categories
 - Extract key business terms, entities, workflows, and roles for knowledge graph building
 - Focus on understanding what the document describes and what business/technical value it provides
+- CRITICAL: All string fields (primaryDomain, subdomain, documentType, contentFocus, summary) MUST be single string values, NOT arrays. Arrays are only for fields with [] in the schema.

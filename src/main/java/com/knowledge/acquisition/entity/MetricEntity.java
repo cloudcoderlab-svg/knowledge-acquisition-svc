@@ -81,6 +81,10 @@ public class MetricEntity {
   @Column(name = "target_value", columnDefinition = "text")
   private String targetValue;
 
+  /** Unit of measurement for this metric (e.g., seconds, percentage, count, USD). */
+  @Column(name = "unit", columnDefinition = "text")
+  private String unit;
+
   /** Semantic embedding vector for similarity search (768 dimensions). */
   @Column(name = "embedding")
   @Type(VectorType.class)

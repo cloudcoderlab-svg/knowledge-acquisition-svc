@@ -35,7 +35,7 @@ public class ProjectKnowledgeResetService {
         "delete from knowledge.knowledge_integrations where project_id = :projectId", projectId);
     execute("delete from knowledge.knowledge_resources where project_id = :projectId", projectId);
     execute("delete from knowledge.knowledge_components where project_id = :projectId", projectId);
-    execute("delete from knowledge.knowledge_modules where project_id = :projectId", projectId);
+    // Modules removed - knowledge_modules table no longer exists in schema v3.0
     execute("delete from knowledge.knowledge_subdomains where project_id = :projectId", projectId);
     execute("delete from knowledge.knowledge_domains where project_id = :projectId", projectId);
     execute(

@@ -48,9 +48,44 @@ public class ProjectPipelineService {
     ProjectEntity project = projectService.find(projectId);
     log.info("Starting project pipeline for project {} ({})", project.getProjectName(), projectId);
 
-    // Get actual file count from GCS
-    int totalFiles = gcsProjectFileService.listFiles(projectId).size();
-    log.info("Found {} files in project {}", totalFiles, projectId);
+    // Get processable files (exclude directories and definition.md)
+    List<String> allFiles = gcsProjectFileService.listFiles(projectId);
+    long processableFileCount =
+        allFiles.stream()
+            .filter(file -> !file.endsWith("/"))
+            .filter(file -> !file.endsWith("definition.md"))
+            .count();
+
+    log.info(
+        "Found {} total files, {} processable files in project {}",
+        allFiles.size(),
+        processableFileCount,
+        projectId);
+
+    // Validate that there are processable files before starting pipeline
+    if (processableFileCount == 0) {
+      log.warn(
+          "No processable files found for project {} ({}). Only definition.md or empty folder detected.",
+          project.getProjectName(),
+          projectId);
+      ProcessTrackingEntity failedProcess =
+          processRepository.save(
+              ProcessTrackingEntity.builder()
+                  .projectId(projectId)
+                  .processType("PROJECT_PIPELINE")
+                  .status("FAILED")
+                  .totalFiles(0)
+                  .processedFiles(0)
+                  .failedFiles(0)
+                  .currentFile(null)
+                  .startedAt(OffsetDateTime.now())
+                  .completedAt(OffsetDateTime.now())
+                  .failureCause(
+                      "No processable files found in project. Only definition.md or empty folder detected. "
+                          + "Please upload documents (PDF, DOCX, XML, etc.) to start the pipeline.")
+                  .build());
+      return toResponse(failedProcess);
+    }
 
     ProcessTrackingEntity process =
         processRepository.save(
@@ -58,7 +93,7 @@ public class ProjectPipelineService {
                 .projectId(projectId)
                 .processType("PROJECT_PIPELINE")
                 .status("RUNNING")
-                .totalFiles(totalFiles)
+                .totalFiles((int) processableFileCount)
                 .processedFiles(0)
                 .failedFiles(0)
                 .currentFile("queued")

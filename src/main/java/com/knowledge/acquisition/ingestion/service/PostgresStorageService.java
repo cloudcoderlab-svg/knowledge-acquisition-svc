@@ -267,6 +267,7 @@ public class PostgresStorageService {
                 .endpointPath(api.getEndpointPath())
                 .requestSchema(toJson(api.getRequestSchema()))
                 .responseSchema(toJson(api.getResponseSchema()))
+                .confidence(api.getConfidence())
                 .embedding(EmbeddingUtils.embeddingToString(api.getEmbedding()))
                 .build())
         .getApiId();
@@ -380,6 +381,7 @@ public class PostgresStorageService {
                 .targetSystem(integration.getTargetSystem())
                 .protocol(integration.getProtocol())
                 .description(integration.getDescription())
+                .confidence(integration.getConfidence())
                 .embedding(EmbeddingUtils.embeddingToString(integration.getEmbedding()))
                 .build())
         .getIntegrationId();
@@ -568,6 +570,12 @@ public class PostgresStorageService {
    */
   public UUID saveKnowledgeTerm(
       UUID projectId, UUID domainId, UUID subdomainId, BusinessTerm term) {
+    // Build metadata JSON with synonyms if present
+    String metadata = null;
+    if (term.getSynonyms() != null && !term.getSynonyms().trim().isEmpty()) {
+      metadata = String.format("{\"synonyms\":\"%s\"}", term.getSynonyms().replace("\"", "\\\""));
+    }
+
     return termRepository
         .save(
             TermEntity.builder()
@@ -578,6 +586,7 @@ public class PostgresStorageService {
                 .category(term.getCategory())
                 .businessDefinition(term.getBusinessDefinition())
                 .technicalDefinition(term.getTechnicalDefinition())
+                .metadata(metadata)
                 .confidence(term.getConfidence())
                 .build())
         .getTermId();
@@ -821,7 +830,7 @@ public class PostgresStorageService {
                 .domainId(domainId)
                 .subdomainId(subdomainId)
                 .noteType(note.getNoteType())
-                .noteText(note.getNoteText())
+                .noteText(note.getContent())
                 .confidence(note.getConfidence())
                 .build())
         .getNoteId();

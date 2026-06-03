@@ -1,5 +1,7 @@
 package com.knowledge.acquisition.controller;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.knowledge.acquisition.repository.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,13 @@ import org.springframework.web.bind.annotation.*;
  *   <li>Data Models - Entity definitions and schemas
  *   <li>Components - System components and modules
  *   <li>Integrations - External system integrations
+ *   <li>Capabilities - Business capabilities (what the business does)
+ *   <li>Roles - Business and system roles
+ *   <li>Terms - Domain vocabulary and ubiquitous language
+ *   <li>Policies - Compliance and governance policies
+ *   <li>Decisions - Business decision points
+ *   <li>Metrics - KPIs and performance indicators
+ *   <li>Notes - Architecture decisions, constraints, risks, and recommendations
  *   <li>Relationships - Cross-document entity relationships
  * </ul>
  *
@@ -40,6 +49,10 @@ import org.springframework.web.bind.annotation.*;
  * GET /api/v1/quality/projects/{projectId}
  * GET /api/v1/quality/projects/{projectId}/domains?limit=10
  * GET /api/v1/quality/projects/{projectId}/workflows?limit=5
+ * GET /api/v1/quality/projects/{projectId}/components?limit=10
+ * GET /api/v1/quality/projects/{projectId}/capabilities?limit=10
+ * GET /api/v1/quality/projects/{projectId}/metrics?limit=10
+ * GET /api/v1/quality/projects/{projectId}/notes?limit=10
  * </pre>
  *
  * @author Knowledge Acquisition Service
@@ -81,6 +94,27 @@ public class DataQualityController {
   /** Repository for accessing relationship entities. */
   private final RelationshipRepository relationshipRepository;
 
+  /** Repository for accessing capability entities. */
+  private final CapabilityRepository capabilityRepository;
+
+  /** Repository for accessing role entities. */
+  private final RoleRepository roleRepository;
+
+  /** Repository for accessing term entities. */
+  private final TermRepository termRepository;
+
+  /** Repository for accessing policy entities. */
+  private final PolicyRepository policyRepository;
+
+  /** Repository for accessing decision entities. */
+  private final DecisionRepository decisionRepository;
+
+  /** Repository for accessing metric entities. */
+  private final MetricRepository metricRepository;
+
+  /** Repository for accessing note entities. */
+  private final NoteRepository noteRepository;
+
   /**
    * Gets comprehensive data quality metrics for a project.
    *
@@ -108,14 +142,20 @@ public class DataQualityController {
    *     "businessRules": 397,
    *     "dataModels": 48,
    *     "components": 382,
-   *     "apis": 0,
-   *     "modules": 0,
-   *     "integrations": 0,
+   *     "apis": 24,
+   *     "integrations": 15,
+   *     "capabilities": 45,
+   *     "roles": 18,
+   *     "terms": 120,
+   *     "policies": 8,
+   *     "decisions": 32,
+   *     "metrics": 22,
+   *     "notes": 67,
    *     "sourceDocuments": 26,
    *     "knowledgeChunks": 921,
    *     "relationships": 61
    *   },
-   *   "totalKnowledgeEntities": 969
+   *   "totalKnowledgeEntities": 1086
    * }
    * </pre>
    *
@@ -128,22 +168,67 @@ public class DataQualityController {
     Map<String, Integer> entityCounts = new HashMap<>();
 
     // Query each repository for count by project ID
-    entityCounts.put("domains", domainRepository.findByProjectId(projectId).size());
-    entityCounts.put("workflows", workflowRepository.findByProjectId(projectId).size());
-    entityCounts.put("apis", apiRepository.findByProjectId(projectId).size());
-    entityCounts.put("businessRules", businessRuleRepository.findByProjectId(projectId).size());
-    entityCounts.put("dataModels", dataModelRepository.findByProjectId(projectId).size());
-    entityCounts.put("components", componentRepository.findByProjectId(projectId).size());
-    entityCounts.put("integrations", integrationRepository.findByProjectId(projectId).size());
-    entityCounts.put("sourceDocuments", sourceDocumentRepository.findByProjectId(projectId).size());
-    entityCounts.put("knowledgeChunks", knowledgeChunkRepository.findByProjectId(projectId).size());
-    entityCounts.put("relationships", relationshipRepository.findByProjectId(projectId).size());
+    int domainsCount = domainRepository.findByProjectId(projectId).size();
+    int workflowsCount = workflowRepository.findByProjectId(projectId).size();
+    int apisCount = apiRepository.findByProjectId(projectId).size();
+    int businessRulesCount = businessRuleRepository.findByProjectId(projectId).size();
+    int dataModelsCount = dataModelRepository.findByProjectId(projectId).size();
+    int componentsCount = componentRepository.findByProjectId(projectId).size();
+    int integrationsCount = integrationRepository.findByProjectId(projectId).size();
+    int capabilitiesCount = capabilityRepository.findByProjectId(projectId).size();
+    int rolesCount = roleRepository.findByProjectId(projectId).size();
+    int termsCount = termRepository.findByProjectId(projectId).size();
+    int policiesCount = policyRepository.findByProjectId(projectId).size();
+    int decisionsCount = decisionRepository.findByProjectId(projectId).size();
+    int metricsCount = metricRepository.findByProjectId(projectId).size();
+    int notesCount = noteRepository.findByProjectId(projectId).size();
+    int sourceDocumentsCount = sourceDocumentRepository.findByProjectId(projectId).size();
+    int knowledgeChunksCount = knowledgeChunkRepository.findByProjectId(projectId).size();
+    int relationshipsCount = relationshipRepository.findByProjectId(projectId).size();
+
+    // Add counts with both abbreviated names (for backward compatibility) and prompt-aligned names
+    // (for AI consumption)
+    entityCounts.put("domains", domainsCount);
+    entityCounts.put("workflows", workflowsCount);
+    entityCounts.put("businessFlows", workflowsCount); // Prompt-aligned alias
+    entityCounts.put("apis", apisCount);
+    entityCounts.put("businessRules", businessRulesCount);
+    entityCounts.put("dataModels", dataModelsCount);
+    entityCounts.put("components", componentsCount);
+    entityCounts.put("solutionComponents", componentsCount); // Prompt-aligned alias
+    entityCounts.put("integrations", integrationsCount);
+    entityCounts.put("capabilities", capabilitiesCount);
+    entityCounts.put("businessCapabilities", capabilitiesCount); // Prompt-aligned alias
+    entityCounts.put("roles", rolesCount);
+    entityCounts.put("businessRoles", rolesCount); // Prompt-aligned alias
+    entityCounts.put("terms", termsCount);
+    entityCounts.put("businessTerms", termsCount); // Prompt-aligned alias
+    entityCounts.put("policies", policiesCount);
+    entityCounts.put("businessPolicies", policiesCount); // Prompt-aligned alias
+    entityCounts.put("decisions", decisionsCount);
+    entityCounts.put("businessDecisions", decisionsCount); // Prompt-aligned alias
+    entityCounts.put("metrics", metricsCount);
+    entityCounts.put("businessMetrics", metricsCount); // Prompt-aligned alias
+    entityCounts.put("notes", notesCount);
+    entityCounts.put("knowledgeNotes", notesCount); // Prompt-aligned alias
+    entityCounts.put("sourceDocuments", sourceDocumentsCount);
+    entityCounts.put("knowledgeChunks", knowledgeChunksCount);
+    entityCounts.put("relationships", relationshipsCount);
 
     // Calculate total knowledge entities (excluding intermediate artifacts)
     int totalEntities =
         entityCounts.values().stream().mapToInt(Integer::intValue).sum()
-            - entityCounts.get("sourceDocuments") // Exclude source documents
-            - entityCounts.get("knowledgeChunks"); // Exclude intermediate chunks
+            - sourceDocumentsCount // Exclude source documents
+            - knowledgeChunksCount // Exclude intermediate chunks
+            - workflowsCount // Subtract duplicates from aliases
+            - componentsCount
+            - capabilitiesCount
+            - rolesCount
+            - termsCount
+            - policiesCount
+            - decisionsCount
+            - metricsCount
+            - notesCount;
 
     return new DataQualityReport(projectId, entityCounts, totalEntities);
   }
@@ -265,6 +350,7 @@ public class DataQualityController {
    *   <li><b>apiType</b> - API type (REST, SOAP, GraphQL, etc.)
    *   <li><b>endpointPath</b> - URL path or endpoint location
    *   <li><b>httpMethod</b> - HTTP method (GET, POST, PUT, DELETE, etc.)
+   *   <li><b>confidence</b> - Extraction confidence score (0.0 to 1.0)
    * </ul>
    *
    * @param projectId the UUID of the project
@@ -285,6 +371,7 @@ public class DataQualityController {
               map.put("apiType", a.getApiType() != null ? a.getApiType() : "");
               map.put("endpointPath", a.getEndpointPath() != null ? a.getEndpointPath() : "");
               map.put("httpMethod", a.getHttpMethod() != null ? a.getHttpMethod() : "");
+              map.put("confidence", a.getConfidence() != null ? a.getConfidence() : 0.0);
               return map;
             })
         .toList();
@@ -391,6 +478,280 @@ public class DataQualityController {
   }
 
   /**
+   * Gets sample component entities for manual quality verification.
+   *
+   * <p>Retrieves a limited number of component entities to validate extraction of system components
+   * and modules. Components represent technical implementation units identified in source
+   * documents.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of component sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/components")
+  public List<Map<String, Object>> getComponentSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return componentRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            c -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("componentId", c.getComponentId());
+              map.put("componentName", c.getComponentName() != null ? c.getComponentName() : "");
+              map.put("componentType", c.getComponentType() != null ? c.getComponentType() : "");
+              map.put("componentLayer", c.getComponentLayer() != null ? c.getComponentLayer() : "");
+              map.put("description", c.getDescription() != null ? c.getDescription() : "");
+              map.put("owner", c.getOwner() != null ? c.getOwner() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample integration entities for manual quality verification.
+   *
+   * <p>Retrieves a limited number of integration entities to validate extraction of system
+   * integrations and data flows between components.
+   *
+   * <p><b>Response Fields:</b>
+   *
+   * <ul>
+   *   <li><b>integrationId</b> - Unique identifier for the integration
+   *   <li><b>integrationName</b> - Name of the integration
+   *   <li><b>integrationType</b> - Type of integration (API, batch, stream, etc.)
+   *   <li><b>sourceSystem</b> - System sending data
+   *   <li><b>targetSystem</b> - System receiving data
+   *   <li><b>dataExchanged</b> - Description of data being exchanged
+   *   <li><b>confidence</b> - Extraction confidence score (0.0 to 1.0)
+   * </ul>
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of integration sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/integrations")
+  public List<Map<String, Object>> getIntegrationSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return integrationRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            i -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("integrationId", i.getIntegrationId());
+              map.put(
+                  "integrationName", i.getIntegrationName() != null ? i.getIntegrationName() : "");
+              map.put(
+                  "integrationType", i.getIntegrationType() != null ? i.getIntegrationType() : "");
+              map.put("sourceSystem", i.getSourceSystem() != null ? i.getSourceSystem() : "");
+              map.put("targetSystem", i.getTargetSystem() != null ? i.getTargetSystem() : "");
+              map.put("dataExchanged", i.getDataExchanged() != null ? i.getDataExchanged() : "");
+              map.put("confidence", i.getConfidence() != null ? i.getConfidence() : 0.0);
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample capability entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of capability sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/capabilities")
+  public List<Map<String, Object>> getCapabilitySamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return capabilityRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            cap -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("capabilityId", cap.getCapabilityId());
+              map.put(
+                  "capabilityName", cap.getCapabilityName() != null ? cap.getCapabilityName() : "");
+              map.put(
+                  "capabilityType", cap.getCapabilityType() != null ? cap.getCapabilityType() : "");
+              map.put("description", cap.getDescription() != null ? cap.getDescription() : "");
+              map.put(
+                  "businessValue", cap.getBusinessValue() != null ? cap.getBusinessValue() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample role entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of role sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/roles")
+  public List<Map<String, Object>> getRoleSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return roleRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            r -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("roleId", r.getRoleId());
+              map.put("roleName", r.getRoleName() != null ? r.getRoleName() : "");
+              map.put("roleType", r.getRoleType() != null ? r.getRoleType() : "");
+              map.put("description", r.getDescription() != null ? r.getDescription() : "");
+              map.put(
+                  "responsibilities",
+                  r.getResponsibilities() != null ? r.getResponsibilities() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample term entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of term sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/terms")
+  public List<Map<String, Object>> getTermSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return termRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            t -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("termId", t.getTermId());
+              map.put("termName", t.getTermName() != null ? t.getTermName() : "");
+              map.put("category", t.getCategory() != null ? t.getCategory() : "");
+              map.put(
+                  "businessDefinition",
+                  t.getBusinessDefinition() != null ? t.getBusinessDefinition() : "");
+              map.put(
+                  "technicalDefinition",
+                  t.getTechnicalDefinition() != null ? t.getTechnicalDefinition() : "");
+              map.put("metadata", t.getMetadata() != null ? t.getMetadata() : "");
+              map.put("confidence", t.getConfidence() != null ? t.getConfidence() : 0.0);
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample policy entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of policy sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/policies")
+  public List<Map<String, Object>> getPolicySamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return policyRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            p -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("policyId", p.getPolicyId());
+              map.put("policyName", p.getPolicyName() != null ? p.getPolicyName() : "");
+              map.put("policyType", p.getPolicyType() != null ? p.getPolicyType() : "");
+              map.put("description", p.getDescription() != null ? p.getDescription() : "");
+              map.put(
+                  "businessRationale",
+                  p.getBusinessRationale() != null ? p.getBusinessRationale() : "");
+              map.put(
+                  "regulatoryRequirement",
+                  p.getRegulatoryRequirement() != null ? p.getRegulatoryRequirement() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample decision entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of decision sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/decisions")
+  public List<Map<String, Object>> getDecisionSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return decisionRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            d -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("decisionId", d.getDecisionId());
+              map.put("decisionName", d.getDecisionName() != null ? d.getDecisionName() : "");
+              map.put(
+                  "decisionQuestion",
+                  d.getDecisionQuestion() != null ? d.getDecisionQuestion() : "");
+              map.put(
+                  "decisionCriteria",
+                  d.getDecisionCriteria() != null ? d.getDecisionCriteria() : "");
+              map.put(
+                  "decisionContext", d.getDecisionContext() != null ? d.getDecisionContext() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample metric entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of metric sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/metrics")
+  public List<Map<String, Object>> getMetricSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return metricRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            m -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("metricId", m.getMetricId());
+              map.put("metricName", m.getMetricName() != null ? m.getMetricName() : "");
+              map.put("metricType", m.getMetricType() != null ? m.getMetricType() : "");
+              map.put("description", m.getDescription() != null ? m.getDescription() : "");
+              map.put(
+                  "calculationMethod",
+                  m.getCalculationMethod() != null ? m.getCalculationMethod() : "");
+              map.put("targetValue", m.getTargetValue() != null ? m.getTargetValue() : "");
+              map.put("unit", m.getUnit() != null ? m.getUnit() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
+   * Gets sample note entities for manual quality verification.
+   *
+   * @param projectId the UUID of the project
+   * @param limit maximum number of samples to return (default: 10)
+   * @return list of note sample data as key-value maps
+   */
+  @GetMapping("/projects/{projectId}/notes")
+  public List<Map<String, Object>> getNoteSamples(
+      @PathVariable UUID projectId, @RequestParam(defaultValue = "10") int limit) {
+    return noteRepository.findByProjectId(projectId).stream()
+        .limit(limit)
+        .map(
+            n -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("noteId", n.getNoteId());
+              map.put("noteType", n.getNoteType() != null ? n.getNoteType() : "");
+              map.put("topic", n.getTopic() != null ? n.getTopic() : "");
+              map.put("noteText", n.getNoteText() != null ? n.getNoteText() : "");
+              map.put("relatedEntity", n.getRelatedEntity() != null ? n.getRelatedEntity() : "");
+              return map;
+            })
+        .toList();
+  }
+
+  /**
    * Data quality report containing entity counts and metrics.
    *
    * <p>This record encapsulates the comprehensive quality metrics for a project, including counts
@@ -410,5 +771,10 @@ public class DataQualityController {
    * @param totalKnowledgeEntities total final knowledge entities extracted
    */
   public record DataQualityReport(
-      UUID projectId, Map<String, Integer> entityCounts, int totalKnowledgeEntities) {}
+      @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
+      @JsonProperty("entityCounts") @JsonAlias({"entity_counts", "counts", "entities"})
+          Map<String, Integer> entityCounts,
+      @JsonProperty("totalKnowledgeEntities")
+          @JsonAlias({"total_knowledge_entities", "total_entities", "knowledge_count"})
+          int totalKnowledgeEntities) {}
 }

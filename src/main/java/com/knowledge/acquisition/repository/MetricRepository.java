@@ -1,6 +1,7 @@
 package com.knowledge.acquisition.repository;
 
 import com.knowledge.acquisition.entity.MetricEntity;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,4 +13,12 @@ import org.springframework.stereotype.Repository;
  * performance indicators extracted from enterprise documentation.
  */
 @Repository
-public interface MetricRepository extends JpaRepository<MetricEntity, UUID> {}
+public interface MetricRepository extends JpaRepository<MetricEntity, UUID> {
+  /**
+   * Retrieves all metrics associated with a specific project.
+   *
+   * @param projectId the unique identifier of the project
+   * @return list of metrics belonging to the project
+   */
+  List<MetricEntity> findByProjectId(UUID projectId);
+}

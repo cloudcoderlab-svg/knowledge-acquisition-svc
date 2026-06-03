@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -79,6 +80,7 @@ public class BusinessMetric {
    * / Number of orders", "(New Customers - Churned Customers) / Total Customers * 100", "Uptime
    * Hours / Total Hours * 100".
    */
+  @JsonAlias("calculation")
   private String calculationMethod;
 
   /**
@@ -88,6 +90,13 @@ public class BusinessMetric {
    * uptime", "< 2 seconds average response time", "> 80 NPS score", "$1M monthly revenue".
    */
   private String targetValue;
+
+  /**
+   * Unit of measurement for this metric.
+   *
+   * <p>Examples: "seconds", "percentage", "count", "USD", "requests/second".
+   */
+  private String unit;
 
   /**
    * Workflow or process that measures or produces this metric.

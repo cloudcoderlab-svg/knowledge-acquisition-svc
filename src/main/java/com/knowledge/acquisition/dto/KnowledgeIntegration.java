@@ -22,7 +22,9 @@ public class KnowledgeIntegration {
   private String sourceSystem;
   private String targetSystem;
   private String protocol;
+  private String dataExchanged;
   private String description;
+  private Double confidence;
   private List<Double> embedding;
   private OffsetDateTime createdAt;
 }

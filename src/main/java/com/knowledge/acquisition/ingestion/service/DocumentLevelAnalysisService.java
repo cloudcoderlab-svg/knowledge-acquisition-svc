@@ -252,6 +252,8 @@ public class DocumentLevelAnalysisService {
     return switch (fileType) {
       case "xml", "xpdl", "bpmn", "bpel" -> XMLPlatformDetector.XMLPlatform.GENERIC_XML;
       case "csv", "tsv" -> XMLPlatformDetector.XMLPlatform.CSV_DOCUMENT;
+      case "java", "py", "jsp", "php", "sql", "fmb" ->
+          XMLPlatformDetector.XMLPlatform.SOURCE_CODE_DOCUMENT;
       case "md", "markdown" -> XMLPlatformDetector.XMLPlatform.MARKDOWN_DOCUMENT;
       case "txt", "log" -> XMLPlatformDetector.XMLPlatform.TEXT_DOCUMENT;
       case "pdf" -> XMLPlatformDetector.XMLPlatform.PDF_DOCUMENT;

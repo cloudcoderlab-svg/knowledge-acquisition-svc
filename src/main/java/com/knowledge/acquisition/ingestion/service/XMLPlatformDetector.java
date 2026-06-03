@@ -34,6 +34,7 @@ public class XMLPlatformDetector {
     SAP_WORKFLOW,
     GENERIC_XML,
     CSV_DOCUMENT,
+    SOURCE_CODE_DOCUMENT,
     MARKDOWN_DOCUMENT,
     TEXT_DOCUMENT,
     PDF_DOCUMENT,
@@ -317,6 +318,7 @@ public class XMLPlatformDetector {
       case SAP_WORKFLOW -> "sap-workflow-extraction-prompt.txt";
       case GENERIC_XML -> "generic-xml-extraction-prompt.txt";
       case CSV_DOCUMENT -> "csv-extraction-prompt.txt";
+      case SOURCE_CODE_DOCUMENT -> "source-code-extraction-prompt.txt";
       case MARKDOWN_DOCUMENT,
               TEXT_DOCUMENT,
               PDF_DOCUMENT,

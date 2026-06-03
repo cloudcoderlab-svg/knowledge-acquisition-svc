@@ -1,5 +1,7 @@
 package com.knowledge.acquisition.controller;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.knowledge.acquisition.entity.*;
 import com.knowledge.acquisition.repository.*;
 import java.util.*;
@@ -415,22 +417,85 @@ public class KnowledgeAnalysisController {
    * @param recommendations actionable recommendations for improving readiness
    */
   public record AgileReadinessReport(
-      UUID projectId,
-      int totalWorkflows,
-      int workflowsWithTriggers,
-      int workflowsWithOutcomes,
-      int workflowsWithActors,
-      double workflowCompletenessPercent,
-      int totalBusinessRules,
-      int rulesWithConditions,
-      int rulesWithValidation,
-      int rulesWithOutcomes,
-      double ruleCompletenessPercent,
-      int totalDomains,
-      int domainsWithDescriptions,
-      double domainCompletenessPercent,
-      double overallAgileReadinessScore,
-      List<String> recommendations) {}
+      @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
+      @JsonProperty("totalWorkflows")
+          @JsonAlias({"total_workflows", "workflow_count", "totalBusinessFlows", "total_business_flows"})
+          int totalWorkflows,
+      @JsonProperty("workflowsWithTriggers")
+          @JsonAlias({
+            "workflows_with_triggers",
+            "triggered_workflows",
+            "businessFlowsWithTriggers",
+            "flowsWithTriggers"
+          })
+          int workflowsWithTriggers,
+      @JsonProperty("workflowsWithOutcomes")
+          @JsonAlias({
+            "workflows_with_outcomes",
+            "workflows_having_outcomes",
+            "businessFlowsWithOutcomes",
+            "flowsWithOutcomes"
+          })
+          int workflowsWithOutcomes,
+      @JsonProperty("workflowsWithActors")
+          @JsonAlias({
+            "workflows_with_actors",
+            "workflows_having_actors",
+            "businessFlowsWithActors",
+            "flowsWithActors"
+          })
+          int workflowsWithActors,
+      @JsonProperty("workflowCompletenessPercent")
+          @JsonAlias({
+            "workflow_completeness",
+            "workflow_completeness_percentage",
+            "businessFlowCompleteness",
+            "flowCompleteness"
+          })
+          double workflowCompletenessPercent,
+      @JsonProperty("totalBusinessRules")
+          @JsonAlias({"total_business_rules", "rule_count", "business_rule_count"})
+          int totalBusinessRules,
+      @JsonProperty("rulesWithConditions")
+          @JsonAlias({
+            "rules_with_conditions",
+            "conditional_rules",
+            "businessRulesWithConditions"
+          })
+          int rulesWithConditions,
+      @JsonProperty("rulesWithValidation")
+          @JsonAlias({
+            "rules_with_validation",
+            "validation_rules",
+            "businessRulesWithValidation"
+          })
+          int rulesWithValidation,
+      @JsonProperty("rulesWithOutcomes")
+          @JsonAlias({
+            "rules_with_outcomes",
+            "rules_having_outcomes",
+            "businessRulesWithOutcomes"
+          })
+          int rulesWithOutcomes,
+      @JsonProperty("ruleCompletenessPercent")
+          @JsonAlias({
+            "rule_completeness",
+            "rule_completeness_percentage",
+            "businessRuleCompleteness"
+          })
+          double ruleCompletenessPercent,
+      @JsonProperty("totalDomains") @JsonAlias({"total_domains", "domain_count"}) int totalDomains,
+      @JsonProperty("domainsWithDescriptions")
+          @JsonAlias({"domains_with_descriptions", "described_domains"})
+          int domainsWithDescriptions,
+      @JsonProperty("domainCompletenessPercent")
+          @JsonAlias({"domain_completeness", "domain_completeness_percentage"})
+          double domainCompletenessPercent,
+      @JsonProperty("overallAgileReadinessScore")
+          @JsonAlias({"overall_score", "agile_readiness_score", "readiness_score"})
+          double overallAgileReadinessScore,
+      @JsonProperty("recommendations") @JsonAlias({"suggestions", "advice"})
+          List<String> recommendations) {}
 
   /**
    * Report analyzing readiness for High-Level Design (HLD) document generation.
@@ -460,18 +525,55 @@ public class KnowledgeAnalysisController {
    * @param recommendations actionable recommendations for improving HLD readiness
    */
   public record HLDReadinessReport(
-      UUID projectId,
-      int totalDataModels,
-      int modelsWithBusinessDefinition,
-      int modelsWithSchema,
-      double dataModelCompletenessPercent,
-      int totalComponents,
-      int componentsWithResponsibilityription,
-      double componentCompletenessPercent,
-      int totalRelationships,
-      double relationshipDensityPercent,
-      double overallHLDReadinessScore,
-      List<String> recommendations) {}
+      @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
+      @JsonProperty("totalDataModels") @JsonAlias({"total_data_models", "data_model_count"})
+          int totalDataModels,
+      @JsonProperty("modelsWithBusinessDefinition")
+          @JsonAlias({
+            "models_with_business_definition",
+            "models_with_description",
+            "dataModelsWithDescription"
+          })
+          int modelsWithBusinessDefinition,
+      @JsonProperty("modelsWithSchema")
+          @JsonAlias({"models_with_schema", "models_having_schema", "dataModelsWithSchema"})
+          int modelsWithSchema,
+      @JsonProperty("dataModelCompletenessPercent")
+          @JsonAlias({"data_model_completeness", "model_completeness_percentage"})
+          double dataModelCompletenessPercent,
+      @JsonProperty("totalComponents")
+          @JsonAlias({
+            "total_components",
+            "component_count",
+            "totalSolutionComponents",
+            "total_solution_components"
+          })
+          int totalComponents,
+      @JsonProperty("componentsWithResponsibilityription")
+          @JsonAlias({
+            "components_with_responsibility",
+            "components_having_responsibility",
+            "componentsWithResponsibility",
+            "solutionComponentsWithResponsibility"
+          })
+          int componentsWithResponsibilityription,
+      @JsonProperty("componentCompletenessPercent")
+          @JsonAlias({
+            "component_completeness",
+            "component_completeness_percentage",
+            "solutionComponentCompleteness"
+          })
+          double componentCompletenessPercent,
+      @JsonProperty("totalRelationships") @JsonAlias({"total_relationships", "relationship_count"})
+          int totalRelationships,
+      @JsonProperty("relationshipDensityPercent")
+          @JsonAlias({"relationship_density", "relationship_density_percentage"})
+          double relationshipDensityPercent,
+      @JsonProperty("overallHLDReadinessScore")
+          @JsonAlias({"overall_score", "hld_readiness_score", "readiness_score"})
+          double overallHLDReadinessScore,
+      @JsonProperty("recommendations") @JsonAlias({"suggestions", "advice"})
+          List<String> recommendations) {}
 
   /**
    * Report analyzing readiness for automated test case generation.
@@ -502,14 +604,45 @@ public class KnowledgeAnalysisController {
    * @param recommendations actionable recommendations for improving test generation readiness
    */
   public record TestReadinessReport(
-      UUID projectId,
-      int totalWorkflows,
-      int testableWorkflows,
-      double workflowTestabilityPercent,
-      int totalBusinessRules,
-      int testableBusinessRules,
-      double ruleTestabilityPercent,
-      int estimatedTestCases,
-      double overallTestReadinessScore,
-      List<String> recommendations) {}
+      @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
+      @JsonProperty("totalWorkflows")
+          @JsonAlias({"total_workflows", "workflow_count", "totalBusinessFlows", "total_business_flows"})
+          int totalWorkflows,
+      @JsonProperty("testableWorkflows")
+          @JsonAlias({
+            "testable_workflows",
+            "workflows_testable",
+            "testableBusinessFlows",
+            "testableFlows"
+          })
+          int testableWorkflows,
+      @JsonProperty("workflowTestabilityPercent")
+          @JsonAlias({
+            "workflow_testability",
+            "workflow_testability_percentage",
+            "businessFlowTestability",
+            "flowTestability"
+          })
+          double workflowTestabilityPercent,
+      @JsonProperty("totalBusinessRules")
+          @JsonAlias({"total_business_rules", "rule_count", "business_rule_count"})
+          int totalBusinessRules,
+      @JsonProperty("testableBusinessRules")
+          @JsonAlias({"testable_business_rules", "testable_rules", "rules_testable"})
+          int testableBusinessRules,
+      @JsonProperty("ruleTestabilityPercent")
+          @JsonAlias({
+            "rule_testability",
+            "rule_testability_percentage",
+            "businessRuleTestability"
+          })
+          double ruleTestabilityPercent,
+      @JsonProperty("estimatedTestCases")
+          @JsonAlias({"estimated_test_cases", "test_case_count", "test_cases"})
+          int estimatedTestCases,
+      @JsonProperty("overallTestReadinessScore")
+          @JsonAlias({"overall_score", "test_readiness_score", "readiness_score"})
+          double overallTestReadinessScore,
+      @JsonProperty("recommendations") @JsonAlias({"suggestions", "advice"})
+          List<String> recommendations) {}
 }

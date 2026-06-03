@@ -156,6 +156,14 @@ Apply confidence scores based on the quality and completeness of information ext
 
 === OUTPUT FORMAT ===
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema below
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, painPoints, trigger, condition, outcome MUST be strings
+- Use semicolon-separated values within a single string for multiple items in string fields
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], kpis[], needs[]
+
 Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 {
@@ -164,7 +172,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
   "businessRoles": [
     {
       "roleName": "From <pega:Participant name='...'> or workbasket",
-      "responsibilities": "From description, permissions, capabilities",
+      "responsibilities": "MUST BE STRING (NOT ARRAY). From description, permissions, capabilities. If multiple, use semicolon-separated: 'Approve workflows; Review data; Manage users'",
       "confidence": 0.95
     }
   ],
@@ -174,7 +182,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
       "termName": "From property @businessName, case/flow names, domain vocabulary",
       "businessDefinition": "Business meaning from descriptions",
       "technicalDefinition": "Property path, data type, storage",
-      "synonyms": ["Alternate names, legacy terms"],
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated alternate names or legacy terms. Example: 'Customer; Client; Account Holder'",
       "category": "domain|process|metric|role|entity",
       "confidence": 0.95
     }
@@ -184,8 +192,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "policyName": "From <pega:Deadline>, SLA, governance rules",
       "policyType": "operational|compliance|sla|governance",
-      "description": "Policy statement and requirements",
-      "enforcementMechanism": "How policy is enforced (validation, escalation)",
+      "description": "MUST BE STRING. Policy statement and requirements",
+      "enforcementMechanism": "MUST BE STRING. How policy is enforced (validation, escalation)",
       "confidence": 0.95
     }
   ],
@@ -194,7 +202,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "decisionName": "From <pega:Decision name='...'>",
       "decisionType": "approval|classification|routing|eligibility",
-      "criteria": "From <pega:When> conditions or decision table",
+      "criteria": "MUST BE STRING. From <pega:When> conditions or decision table",
       "possibleOutcomes": ["From decision outcomes, routing paths"],
       "confidence": 0.95
     }
@@ -204,9 +212,9 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "metricName": "From <pega:ServiceLevel>, <pega:Goal>, <pega:Report>",
       "metricType": "sla|performance|quality|kpi",
-      "description": "What is measured and why",
-      "targetValue": "From goal timeframe, threshold",
-      "measurementMethod": "How metric is calculated or measured",
+      "description": "MUST BE STRING. What is measured and why",
+      "targetValue": "MUST BE STRING. From goal timeframe, threshold",
+      "measurementMethod": "MUST BE STRING. How metric is calculated or measured",
       "confidence": 0.95
     }
   ],
@@ -215,8 +223,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "capabilityName": "From <pega:CaseType name='...'> - WHAT the business does",
       "capabilityType": "core|supporting|enabling",
-      "description": "Business function performed, technology-independent",
-      "businessValue": "Why this capability matters to the business",
+      "description": "MUST BE STRING. Business function performed, technology-independent",
+      "businessValue": "MUST BE STRING. Why this capability matters to the business",
       "confidence": 0.95
     }
   ],
@@ -225,7 +233,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "componentName": "From <pega:Connector>, <pega:Utility>, <pega:Section> - HOW it's implemented",
       "componentType": "integration|connector|service|ui|automation",
-      "description": "Technical implementation details",
+      "description": "MUST BE STRING. Technical implementation details",
       "technologyStack": ["From technology, platform, framework"],
       "confidence": 0.95
     }
@@ -275,8 +283,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
             "notNull": true
           }
         }
-      ],
-      "confidence": 0.95
+      ]
     }
   ],
 
@@ -307,12 +314,12 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "ruleName": "From <pega:DecisionTable name='...'>, <pega:Validate>, <pega:DataTransform>",
       "ruleType": "validation|calculation|authorization|workflow|eligibility",
-      "condition": "From condition rows. Format: '[Validation] [Rationale: purpose] actual condition'",
-      "outcome": "From result column. Format: 'outcome. Impact: impact text. ErrorCode: code'",
+      "condition": "MUST BE STRING (NOT ARRAY). From condition rows. Format: '[Validation] [Rationale: purpose] actual condition'. If multiple conditions, use semicolon-separated",
+      "outcome": "MUST BE STRING (NOT ARRAY). From result column. Format: 'outcome. Impact: impact text. ErrorCode: code'. If multiple outcomes, use semicolon-separated",
       "sourceBusinessComponentName": "Case type or flow containing this rule",
       "priority": "critical|high|medium|low",
-      "technicalImplementation": "Decision table logic, expressions, activity methods, data transforms, error handling, rulebases",
-      "validationCriteria": "Test scenarios: Valid examples → passes, Invalid examples → error codes, Edge cases",
+      "technicalImplementation": "MUST BE STRING. Decision table logic, expressions, activity methods, data transforms, error handling, rulebases",
+      "validationCriteria": "MUST BE STRING. Test scenarios: Valid examples → passes, Invalid examples → error codes, Edge cases",
       "confidence": 0.95
     }
   ],
@@ -320,9 +327,9 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
   "businessFlows": [
     {
       "flowName": "From <pega:Flow name='...'>, <pega:Process name='...'>",
-      "trigger": "From start step, trigger event. Format: 'trigger. Purpose: WHY this exists. Criticality: level'",
-      "outcome": "From end step, completion. Format: 'outcome. Value: business value delivered'",
-      "owner": "From <Owner>, <ProcessOwner>, <Steward>",
+      "trigger": "MUST BE STRING (NOT ARRAY). From start step, trigger event. Format: 'trigger. Purpose: WHY this exists. Criticality: level'",
+      "outcome": "MUST BE STRING (NOT ARRAY). From end step, completion. Format: 'outcome. Value: business value delivered'",
+      "owner": "MUST BE STRING. From <Owner>, <ProcessOwner>, <Steward>",
       "steps": [
         {
           "sequence": 1,
@@ -365,6 +372,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 === CRITICAL RULES ===
 
+IMPORTANT: dataModels do NOT have a confidence field - do not include it in the output
+
 **Schema v2 Alignment (MANDATORY):**
 1. ALL 14 entity types MUST be present (empty arrays acceptable)
 2. NO deprecated fields: businessPurpose, businessValue at flow level, ruleCategory
@@ -397,6 +406,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 ❌ DON'T skip businessTerms - extract from property labels and case names
 ❌ DON'T miss apis from Connect-REST/SOAP
 ❌ DON'T forget actor field in steps - HIGH PRIORITY
+
+CRITICAL: String fields MUST be single string values, NOT arrays. If you return arrays for string fields, deserialization will fail. Use semicolon or comma-separated values within a single string for multiple items.
 
 === EXTRACTION VALIDATION CHECKLIST ===
 

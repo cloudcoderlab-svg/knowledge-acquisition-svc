@@ -5,167 +5,38 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-    <changeSet id="knowledge-engine-project-schema-v1" author="kengine">
-        <validCheckSum>ANY</validCheckSum>
+    <!--
+    =============================================================================
+    Knowledge Engine - Database Schema Changelog
+    =============================================================================
+
+    This changelog applies the complete Knowledge Engine database schema from
+    a single consolidated SQL file that serves as the source of truth.
+
+    Schema Version: 3.1 (DTO-Prompt-Entity Alignment)
+    Last Updated: 2026-06-03
+
+    The schema includes all tables for:
+    - Core: projects, documents, source chunks
+    - Knowledge: domains, subdomains, components, workflows
+    - Business Concepts: capabilities, roles, terms, policies, decisions, metrics, notes
+    - Architecture: APIs, data models, integrations
+    - Relationships: knowledge_relationships (cross-entity links)
+    - Analysis: shared entities, conflicts, gaps
+
+    =============================================================================
+    -->
+
+    <changeSet id="knowledge-engine-schema-v3.1" author="kengine">
+        <comment>Apply complete Knowledge Engine schema v3.1 with DTO-Prompt-Entity alignment</comment>
         <sqlFile
             path="db/changelog/sql/project-centered-schema.sql"
             relativeToChangelogFile="false"
             splitStatements="true"
             stripComments="false"/>
-        <rollback>DROP SCHEMA IF EXISTS knowledge CASCADE;</rollback>
-    </changeSet>
-
-    <changeSet id="add-processing-summary-fields" author="kengine">
-        <addColumn schemaName="knowledge" tableName="knowledge_engine_processes">
-            <column name="total_tokens_processed" type="BIGINT">
-                <constraints nullable="true"/>
-            </column>
-            <column name="total_bytes_processed" type="BIGINT">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
         <rollback>
-            <dropColumn schemaName="knowledge" tableName="knowledge_engine_processes" columnName="total_tokens_processed"/>
-            <dropColumn schemaName="knowledge" tableName="knowledge_engine_processes" columnName="total_bytes_processed"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="increase-varchar-lengths-for-business-rules" author="kengine">
-        <modifyDataType schemaName="knowledge" tableName="knowledge_business_rules" columnName="rule_type" newDataType="VARCHAR(255)"/>
-        <modifyDataType schemaName="knowledge" tableName="knowledge_business_rules" columnName="priority" newDataType="VARCHAR(100)"/>
-        <rollback>
-            <modifyDataType schemaName="knowledge" tableName="knowledge_business_rules" columnName="rule_type" newDataType="VARCHAR(100)"/>
-            <modifyDataType schemaName="knowledge" tableName="knowledge_business_rules" columnName="priority" newDataType="VARCHAR(50)"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="increase-varchar-lengths-for-components-modules" author="kengine">
-        <validCheckSum>ANY</validCheckSum>
-        <preConditions onFail="MARK_RAN">
-            <columnExists schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle"/>
-        </preConditions>
-        <modifyDataType schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle" newDataType="VARCHAR(100)"/>
-        <rollback>
-            <modifyDataType schemaName="knowledge" tableName="knowledge_components" columnName="lifecycle" newDataType="VARCHAR(50)"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="add-project-id-to-workflow-steps-and-data-fields" author="kengine">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <columnExists schemaName="knowledge" tableName="knowledge_workflow_steps" columnName="project_id"/>
-            </not>
-        </preConditions>
-
-        <!-- Add project_id to knowledge_workflow_steps -->
-        <addColumn schemaName="knowledge" tableName="knowledge_workflow_steps">
-            <column name="project_id" type="UUID">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
-
-        <!-- Populate project_id from parent workflow table -->
-        <sql>
-            UPDATE knowledge.knowledge_workflow_steps ws
-            SET project_id = w.project_id
-            FROM knowledge.knowledge_workflows w
-            WHERE ws.workflow_id = w.workflow_id;
-        </sql>
-
-        <!-- Add NOT NULL constraint after populating -->
-        <addNotNullConstraint schemaName="knowledge" tableName="knowledge_workflow_steps" columnName="project_id" columnDataType="UUID"/>
-
-        <!-- Add foreign key constraint -->
-        <addForeignKeyConstraint
-            baseTableSchemaName="knowledge"
-            baseTableName="knowledge_workflow_steps"
-            baseColumnNames="project_id"
-            constraintName="fk_workflow_steps_project"
-            referencedTableSchemaName="knowledge"
-            referencedTableName="projects"
-            referencedColumnNames="project_id"
-            onDelete="CASCADE"/>
-
-        <!-- Add index for performance -->
-        <createIndex schemaName="knowledge" tableName="knowledge_workflow_steps" indexName="idx_workflow_steps_project_id">
-            <column name="project_id"/>
-        </createIndex>
-
-        <!-- Add project_id to knowledge_data_fields -->
-        <addColumn schemaName="knowledge" tableName="knowledge_data_fields">
-            <column name="project_id" type="UUID">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
-
-        <!-- Populate project_id from parent data_models table -->
-        <sql>
-            UPDATE knowledge.knowledge_data_fields df
-            SET project_id = dm.project_id
-            FROM knowledge.knowledge_data_models dm
-            WHERE df.data_model_id = dm.data_model_id;
-        </sql>
-
-        <!-- Add NOT NULL constraint after populating -->
-        <addNotNullConstraint schemaName="knowledge" tableName="knowledge_data_fields" columnName="project_id" columnDataType="UUID"/>
-
-        <!-- Add foreign key constraint -->
-        <addForeignKeyConstraint
-            baseTableSchemaName="knowledge"
-            baseTableName="knowledge_data_fields"
-            baseColumnNames="project_id"
-            constraintName="fk_data_fields_project"
-            referencedTableSchemaName="knowledge"
-            referencedTableName="projects"
-            referencedColumnNames="project_id"
-            onDelete="CASCADE"/>
-
-        <!-- Add index for performance -->
-        <createIndex schemaName="knowledge" tableName="knowledge_data_fields" indexName="idx_data_fields_project_id">
-            <column name="project_id"/>
-        </createIndex>
-
-        <rollback>
-            <dropIndex schemaName="knowledge" tableName="knowledge_data_fields" indexName="idx_data_fields_project_id"/>
-            <dropForeignKeyConstraint baseTableSchemaName="knowledge" baseTableName="knowledge_data_fields" constraintName="fk_data_fields_project"/>
-            <dropColumn schemaName="knowledge" tableName="knowledge_data_fields" columnName="project_id"/>
-
-            <dropIndex schemaName="knowledge" tableName="knowledge_workflow_steps" indexName="idx_workflow_steps_project_id"/>
-            <dropForeignKeyConstraint baseTableSchemaName="knowledge" baseTableName="knowledge_workflow_steps" constraintName="fk_workflow_steps_project"/>
-            <dropColumn schemaName="knowledge" tableName="knowledge_workflow_steps" columnName="project_id"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="add-project-summary-profile" author="kengine">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <columnExists schemaName="knowledge" tableName="projects" columnName="summary"/>
-            </not>
-        </preConditions>
-        <addColumn schemaName="knowledge" tableName="projects">
-            <column name="summary" type="TEXT">
-                <constraints nullable="true"/>
-            </column>
-            <column name="summary_embedding" type="vector(768)">
-                <constraints nullable="true"/>
-            </column>
-            <column name="summary_generated_at" type="TIMESTAMPTZ">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
-        <sql>
-            CREATE INDEX IF NOT EXISTS idx_projects_summary_embedding_hnsw
-                ON knowledge.projects
-                USING hnsw (summary_embedding vector_cosine_ops)
-                WHERE summary_embedding IS NOT NULL;
-        </sql>
-        <rollback>
-            <sql>DROP INDEX IF EXISTS knowledge.idx_projects_summary_embedding_hnsw;</sql>
-            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary_generated_at"/>
-            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary_embedding"/>
-            <dropColumn schemaName="knowledge" tableName="projects" columnName="summary"/>
+            DROP SCHEMA IF EXISTS knowledge CASCADE;
         </rollback>
     </changeSet>
 
 </databaseChangeLog>
-

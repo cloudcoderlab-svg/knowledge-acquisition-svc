@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -96,7 +97,10 @@ public class BusinessPolicy {
    *   <li><b>recommended</b> - Strongly encouraged but not required
    *   <li><b>optional</b> - Suggested best practice
    * </ul>
+   *
+   * <p>Also accepts 'enforcementMechanism' from source code extraction prompt.
    */
+  @JsonAlias("enforcementMechanism")
   private String enforcementLevel;
 
   /**

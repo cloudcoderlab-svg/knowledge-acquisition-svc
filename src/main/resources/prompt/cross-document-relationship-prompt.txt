@@ -180,6 +180,14 @@ Document C (Data_Models.xlsx):
 
 === OUTPUT SCHEMA ===
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema below
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, painPoints, trigger, condition, outcome MUST be strings
+- Use semicolon-separated values within a single string for multiple items in string fields
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], kpis[], needs[]
+
 Return ONLY valid JSON with this structure (omit empty arrays for conflicts/gaps if none found):
 
 {
@@ -194,14 +202,14 @@ Return ONLY valid JSON with this structure (omit empty arrays for conflicts/gaps
       }
     ],
 
-    "architecturalInsights": "High-level summary of how these documents fit together: architectural patterns, layering, integration approach, etc.",
+    "architecturalInsights": "MUST BE STRING. High-level summary of how these documents fit together: architectural patterns, layering, integration approach, etc.",
 
     "conflicts": [
       {
         "entityName": "Entity with conflicting descriptions",
         "entityType": "solution_component|api|data_model|etc",
         "conflictType": "contradictory_definitions|version_mismatch|duplicate_responsibility|incompatible_dependencies",
-        "description": "Detailed explanation of the conflict",
+        "description": "MUST BE STRING. Detailed explanation of the conflict",
         "documentsInvolved": ["Doc 1", "Doc 2"],
         "severity": "critical|high|medium|low"
       }
@@ -212,9 +220,9 @@ Return ONLY valid JSON with this structure (omit empty arrays for conflicts/gaps
         "entityName": "Referenced but undefined entity",
         "entityType": "solution_component|api|data_model|etc",
         "gapType": "referenced_not_defined|missing_implementation|undefined_dependency|incomplete_specification",
-        "description": "What is missing or incomplete",
+        "description": "MUST BE STRING. What is missing or incomplete",
         "referencedIn": ["Documents that reference this entity"],
-        "expectedIn": "Where this should be defined (if known)"
+        "expectedIn": "MUST BE STRING. Where this should be defined (if known)"
       }
     ]
   },
@@ -228,8 +236,8 @@ Return ONLY valid JSON with this structure (omit empty arrays for conflicts/gaps
       "targetType": "solution_component|api|business_flow|business_role|business_capability|business_rule|business_term|business_policy|business_decision|business_metric|data_model|integration|deployment_resource",
       "targetDocument": "Exact filename of target document",
       "relationshipType": "depends_on|calls|implements|extends|contains|produces|consumes|triggers|uses|integrates_with|shares_data_with|references|replaces|complements|conflicts_with|owns|deployed_on|measured_by|enforces",
-      "context": "How these entities relate across documents - be specific",
-      "evidence": "REQUIRED: Specific quotes or facts from summaries supporting this relationship",
+      "context": "MUST BE STRING. How these entities relate across documents - be specific",
+      "evidence": "MUST BE STRING. REQUIRED: Specific quotes or facts from summaries supporting this relationship",
       "confidence": 0.6
     }
   ]
@@ -290,3 +298,5 @@ IMPORTANT REMINDERS:
 - Provide specific evidence for each relationship (REQUIRED field)
 - Use exact entity names as they appear in summaries
 - NO markdown, NO explanations, ONLY JSON
+
+CRITICAL: String fields MUST be single string values, NOT arrays. If you return arrays for string fields, deserialization will fail. Use semicolon or comma-separated values within a single string for multiple items.

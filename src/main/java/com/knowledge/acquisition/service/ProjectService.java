@@ -82,7 +82,10 @@ public class ProjectService {
   public ProjectResponse create(CreateProjectRequest request) {
     String normalizedName = pathService.normalize(request.projectName());
     String sourceBucket = resolveSourceBucket(request.sourceBucket());
-    String gcsPrefix = pathService.projectPrefix(normalizedName);
+    String gcsPrefix =
+        request.gcsPrefix() != null
+            ? request.gcsPrefix()
+            : pathService.projectPrefix(normalizedName);
 
     int version;
     if (request.version() != null) {

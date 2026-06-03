@@ -450,8 +450,8 @@ PRIORITY ORDER: Extract in this sequence for maximum context:
       - Extract <BusinessName>, <TermDefinition>, <GlossaryTerm>, <DomainVocabulary>
       - Also extract from entity/field business names when different from technical names
       - Use termName for business term, definition for explanation
-      - Extract <Alias>, <Synonym>, <AlternateName> → aliases array
-      - Examples: "Customer" (term) = "Party, Account Holder, Client" (aliases)
+      - Extract <Alias>, <Synonym>, <AlternateName> → synonyms array
+      - Examples: "Customer" (term) = "Party, Account Holder, Client" (synonyms)
 
    c. **Business Policies:**
       - Extract <Policy>, <ComplianceRule>, <DataGovernancePolicy>, <RetentionPolicy>
@@ -573,7 +573,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
   "businessRoles": [
     {
       "roleName": "From <Role name='...'>, <Actor>, <WorkflowRole>, <SecurityRole>",
-      "responsibilities": "From <Description>, <Responsibilities>, <Permissions>, <Capabilities>. Include permission levels, entity access, approval authority",
+      "responsibilities": "MUST be STRING (not array). From <Description>, <Responsibilities>, <Permissions>, <Capabilities>. If multiple items, use semicolon-separated string: 'Approve changes; Review data quality; Manage workflows'",
       "confidence": 0.95
     }
   ],
@@ -582,7 +582,7 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
     {
       "termName": "From <BusinessName>, <TermDefinition>, <GlossaryTerm>, or field/entity business names",
       "definition": "From <Definition>, <BusinessMeaning>, <Description>. Business explanation of the term",
-      "aliases": ["Alternative names from <Alias>, <Synonym>, <AlternateName>"],
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated alternative names from <Alias>, <Synonym>, <AlternateName>. Example: 'Customer; Client; Party; Account Holder'",
       "confidence": 0.95
     }
   ],
@@ -775,6 +775,8 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
 
 === CRITICAL RULES ===
 
+IMPORTANT: dataModels do NOT have a confidence field - do not include it in the output
+
 **JSON Structure Alignment (MATCHES JAVA ENTITIES EXACTLY - Schema v2):**
 
 1. ALL entity types from KnowledgeExtractionResult.java MUST be supported:
@@ -783,6 +785,12 @@ Return ONLY valid JSON using this structure (MUST match Java entities exactly):
    - solutionComponents (NEW name for technicalComponents - HOW it's implemented)
    - apis, dataModels, integrations, deploymentResources
    - businessRules, businessFlows, relationships, knowledgeNotes
+
+1a. **FIELD TYPE ADHERENCE (CRITICAL):**
+   - MUST follow exact field types from schema - STRING fields must be strings, ARRAY fields must be arrays
+   - For STRING fields like "responsibilities", "painPoints", "description", "synonyms": return SINGLE STRING, NOT array
+   - If multiple items exist, concatenate with semicolon: "Approve requests; Review data; Manage workflows" or "Customer; Client; Account Holder"
+   - ARRAY fields like "needs", "workflowsInvolved": return as JSON arrays ["item1", "item2"]
 
 2. **Schema v2 Critical Distinction:**
    - businessCapabilities: WHAT the business does (technology-independent business functions)

@@ -20,4 +20,5 @@ public record CreateProjectRequest(
             regexp = "^[a-z0-9][a-z0-9-_.]*[a-z0-9]$|^$",
             message = "Invalid GCS bucket name format")
         String sourceBucket,
+    @Size(max = 1000, message = "GCS prefix must not exceed 1000 characters") String gcsPrefix,
     JsonNode metadata) {}

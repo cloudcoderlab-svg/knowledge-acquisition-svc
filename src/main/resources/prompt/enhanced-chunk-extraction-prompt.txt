@@ -92,12 +92,12 @@ Return ONLY valid JSON:
       "roleName": "",
       "roleType": "internal|external|system|partner",
       "description": "",
-      "responsibilities": "",
+      "responsibilities": "MUST be string. If multiple, use comma-separated: 'Approve requests, Review data, Manage workflows'",
       "department": "",
       "businessCapability": "",
       "persona": "",
       "needs": [],
-      "painPoints": "",
+      "painPoints": "MUST be string. If multiple, use comma-separated",
       "workflowsInvolved": [],
       "confidence": 0.0
     }
@@ -119,12 +119,10 @@ Return ONLY valid JSON:
     {
       "ruleName": "",
       "ruleType": "validation|calculation|authorization|workflow|policy|eligibility",
-      "condition": "",
-      "outcome": "",
+      "condition": "Condition text. Rationale: WHY this rule exists",
+      "outcome": "Outcome text. Impact: What happens if violated",
       "sourceBusinessComponentName": "",
       "priority": "critical|high|medium|low",
-      "businessRationale": "WHY this rule exists",
-      "businessImpact": "What happens if violated",
       "businessOwner": "",
       "regulatoryBasis": "",
       "exceptionHandling": "",
@@ -139,14 +137,9 @@ Return ONLY valid JSON:
   "businessFlows": [
     {
       "flowName": "",
-      "trigger": "",
-      "outcome": "",
+      "trigger": "Trigger event. Type: manual|scheduled|event_driven|api. Initiator: role/system. Purpose: WHY this exists. Criticality: critical|high|medium|low. Frequency: daily|weekly|monthly|on_demand|real_time",
+      "outcome": "Expected outcome. Value: business value delivered",
       "owner": "",
-      "businessPurpose": "WHY this workflow exists",
-      "businessValue": "",
-      "businessFrequency": "daily|weekly|monthly|on_demand|real_time",
-      "businessVolume": "low|medium|high|very_high",
-      "businessCriticality": "critical|high|medium|low",
       "businessOwner": "",
       "initiatedByRole": "",
       "successCriteria": "",
@@ -188,7 +181,7 @@ Return ONLY valid JSON:
       "termName": "",
       "businessDefinition": "",
       "technicalDefinition": "",
-      "synonyms": [],
+      "synonyms": "MUST BE STRING (NOT ARRAY). Semicolon-separated alternative terms. Example: 'Customer; Client; Account Holder'",
       "category": "domain|process|metric|role|entity",
       "businessOwner": "",
       "usedInWorkflows": [],
@@ -344,6 +337,8 @@ IMPORTANT REMINDERS:
 - NO markdown, NO explanations, ONLY JSON
 - Extract business rationale (WHY) alongside technical details (WHAT)
 - WARNING: usageProfiles and costEstimates are rarely in chunks - only extract if explicitly stated
+- CRITICAL: Follow field types exactly - if schema shows STRING field (e.g., "responsibilities": ""), return a SINGLE STRING, NOT an array. For multiple items, use comma-separated or newline-separated values within one string
+- NOTE: dataModels do NOT have a confidence field - do not include it in the output
 
 === CHUNK TO ANALYZE ===
 

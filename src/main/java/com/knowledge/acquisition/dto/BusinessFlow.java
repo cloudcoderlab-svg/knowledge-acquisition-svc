@@ -11,6 +11,10 @@ public class BusinessFlow {
   private String trigger;
   private String outcome;
   private String owner;
+  private String businessOwner;
+  private String initiatedByRole;
+  private String successCriteria;
+  private String businessCapability;
   private List<BusinessFlowStep> steps;
   private Double confidence;
 }

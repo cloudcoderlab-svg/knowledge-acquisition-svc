@@ -35,11 +35,17 @@ public class ComponentEntity {
   @Column(name = "component_type", columnDefinition = "text")
   private String componentType;
 
+  @Column(name = "component_layer", columnDefinition = "text")
+  private String componentLayer;
+
   @Column(name = "category", columnDefinition = "text")
   private String category;
 
   @Column(name = "knowledge", columnDefinition = "text")
   private String knowledge;
+
+  @Column(name = "description", columnDefinition = "text")
+  private String description;
 
   @Column(name = "responsibility", columnDefinition = "text")
   private String responsibility;
@@ -49,6 +55,12 @@ public class ComponentEntity {
 
   @Column(name = "capability", columnDefinition = "text")
   private String capability;
+
+  @Column(name = "owner", columnDefinition = "text")
+  private String owner;
+
+  @Column(name = "lifecycle", columnDefinition = "text")
+  private String lifecycle;
 
   @Column(name = "embedding")
   @Type(VectorType.class)

@@ -1,5 +1,6 @@
 package com.knowledge.acquisition.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -57,18 +58,41 @@ public class KnowledgeNote {
   /**
    * Category classification for this knowledge note.
    *
-   * <p>Possible values:
+   * <p>Possible values (enhanced chunk and platform-specific prompts):
    *
    * <ul>
    *   <li><b>architecture</b> - High-level system architecture or structural decision
-   *   <li><b>design_decision</b> - Specific design choice or pattern selection with rationale
+   *   <li><b>design_decision</b> or <b>design</b> - Specific design choice or pattern selection
+   *       with rationale
    *   <li><b>constraint</b> - Technical, business, or regulatory limitation or requirement
    *   <li><b>assumption</b> - Presumption or condition assumed to be true during planning/design
    *   <li><b>risk</b> - Potential issue, vulnerability, technical debt, or concern
    *   <li><b>recommendation</b> - Suggested improvement, best practice, or future enhancement
+   *   <li><b>migration</b> - Migration-specific notes (platform-specific prompts)
+   * </ul>
+   *
+   * <p>Additional values from source code extraction prompt:
+   *
+   * <ul>
+   *   <li><b>architecture_decision</b> - Architecture decision from code
+   *   <li><b>technical_debt</b> - Technical debt or code smell
+   *   <li><b>migration_concern</b> - Migration or modernization concern
+   *   <li><b>business_constraint</b> - Business constraint from code
+   *   <li><b>todo</b> - TODO comment or incomplete code
+   *   <li><b>code_smell</b> - Code quality issue
    * </ul>
    */
+  @JsonAlias("category")
   private String noteType;
+
+  /**
+   * Brief topic or title for this knowledge note.
+   *
+   * <p>Used by source code extraction prompt to provide a concise summary of what the note is
+   * about. Examples: "Database Connection Pooling", "Exception Handling Pattern", "Deprecated API
+   * Usage".
+   */
+  private String topic;
 
   /**
    * The actual note content.
@@ -80,7 +104,19 @@ public class KnowledgeNote {
    * <p>Good notes are actionable and provide enough context to be understood without needing to
    * reference the source document.
    */
-  private String noteText;
+  @JsonAlias("noteText")
+  private String content;
+
+  /**
+   * Name of the related entity, component, workflow, or capability this note applies to.
+   *
+   * <p>Used by platform-specific extraction prompts (TIBCO MDM, Pega BPM, Camunda BPMN) to link
+   * notes to specific entities or components they relate to. Examples: "OrderManagementWorkflow",
+   * "CustomerDataModel", "PaymentService".
+   *
+   * <p>This field helps contextualize notes and enables filtering notes by related entity.
+   */
+  private String relatedEntity;
 
   /**
    * AI extraction confidence score.

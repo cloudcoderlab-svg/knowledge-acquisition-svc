@@ -25,4 +25,14 @@ Known Terms: {{IDENTIFIED_TERMS}}
 === CHUNK ===
 {{CHUNK_CONTENT}}
 
+FIELD TYPE ENFORCEMENT:
+- String fields MUST return a SINGLE STRING VALUE (not an array)
+- Array fields are clearly marked with [] in the schema below
+- If a field shows "field": "value" (no brackets), it MUST be a string, not an array
+- Fields like responsibilities, description, painPoints, trigger, condition, outcome MUST be strings
+- Use semicolon-separated values within a single string for multiple items in string fields
+- Only use arrays for fields explicitly marked with [] like steps[], fields[], kpis[], needs[]
+
 Return ONLY valid JSON using the same schema as enhanced-chunk-extraction-prompt.txt.
+
+CRITICAL: String fields MUST be single string values, NOT arrays. If you return arrays for string fields, deserialization will fail. Use semicolon or comma-separated values within a single string for multiple items.

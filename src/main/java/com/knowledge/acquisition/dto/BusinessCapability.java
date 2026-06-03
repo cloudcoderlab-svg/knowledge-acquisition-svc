@@ -1,6 +1,7 @@
 package com.knowledge.acquisition.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -95,6 +96,23 @@ public class BusinessCapability {
    * "Improves order fulfillment accuracy".
    */
   private String businessValue;
+
+  /**
+   * Key Performance Indicators (KPIs) used to measure this capability.
+   *
+   * <p>List of metric names or KPI definitions that track the performance of this capability.
+   * Examples: ["Order Processing Time", "Customer Satisfaction Score", "First-Time Resolution
+   * Rate"].
+   */
+  private List<String> kpis;
+
+  /**
+   * Business owner or steward responsible for this capability.
+   *
+   * <p>The person, role, or department that owns this capability. Examples: "VP of Sales",
+   * "Customer Service Department", "Product Management".
+   */
+  private String businessOwner;
 
   /**
    * AI extraction confidence score.

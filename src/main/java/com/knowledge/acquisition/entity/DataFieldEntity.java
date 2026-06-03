@@ -72,6 +72,18 @@ public class DataFieldEntity {
   @Column(name = "field_type", columnDefinition = "text")
   private String fieldType;
 
+  /** Whether this field is required/mandatory. */
+  @Column(name = "is_required")
+  private Boolean isRequired;
+
+  /**
+   * Technical description of this field.
+   *
+   * <p>Stored as PostgreSQL TEXT to accommodate detailed explanations.
+   */
+  @Column(name = "description", columnDefinition = "text")
+  private String description;
+
   /**
    * Business description explaining the purpose and meaning of this field.
    *
@@ -79,6 +91,14 @@ public class DataFieldEntity {
    */
   @Column(name = "business_definition", columnDefinition = "text")
   private String businessDefinition;
+
+  /**
+   * Business meaning of this field in business terms (from source code extraction).
+   *
+   * <p>Captures what this field represents from a business perspective.
+   */
+  @Column(name = "business_meaning", columnDefinition = "text")
+  private String businessMeaning;
 
   /**
    * JSON structure containing validation constraints and business rules for this field.

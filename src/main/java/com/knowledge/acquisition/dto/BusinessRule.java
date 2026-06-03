@@ -12,6 +12,11 @@ public class BusinessRule {
   private String outcome;
   private String sourceBusinessComponentName;
   private String priority;
+  private String businessOwner;
+  private String regulatoryBasis;
+  private String exceptionHandling;
+  private String businessExamples;
+  private String affectsBusinessCapability;
   private Double confidence;
   private String technicalImplementation;
   private String validationCriteria;

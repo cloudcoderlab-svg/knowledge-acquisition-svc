@@ -842,14 +842,14 @@ public class KnowledgeGraphService {
         continue;
       }
       for (KnowledgeNote note : chunk.getKnowledgeNotes()) {
-        if (note.getNoteText() == null || note.getNoteText().isBlank()) {
+        if (note.getContent() == null || note.getContent().isBlank()) {
           continue;
         }
         // Use overloaded method that accepts full DTO for consistency
         safeSave(
             () -> storageService.saveKnowledgeNote(source.projectId(), domainId, subdomainId, note),
             "note",
-            note.getNoteText().substring(0, Math.min(50, note.getNoteText().length())));
+            note.getContent().substring(0, Math.min(50, note.getContent().length())));
       }
     }
   }
