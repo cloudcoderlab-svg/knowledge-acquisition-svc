@@ -130,4 +130,13 @@ public class KnowledgeNote {
    * </ul>
    */
   private Double confidence;
+
+  /**
+   * Semantic embedding vector for similarity search and retrieval.
+   *
+   * <p>768-dimensional vector generated using Vertex AI text-embedding-005 model. Enables semantic
+   * search across knowledge notes to find architecturally similar decisions, related constraints,
+   * or analogous risks across different projects.
+   */
+  private java.util.List<Double> embedding;
 }

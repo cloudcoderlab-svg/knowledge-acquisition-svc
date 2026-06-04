@@ -804,6 +804,7 @@ public class PostgresStorageService {
                 .noteType(noteType)
                 .noteText(noteText)
                 .confidence(confidence)
+                .embedding(null)
                 .build())
         .getNoteId();
   }
@@ -831,7 +832,10 @@ public class PostgresStorageService {
                 .subdomainId(subdomainId)
                 .noteType(note.getNoteType())
                 .noteText(note.getContent())
+                .relatedEntity(note.getRelatedEntity())
+                .topic(note.getTopic())
                 .confidence(note.getConfidence())
+                .embedding(EmbeddingUtils.embeddingToString(note.getEmbedding()))
                 .build())
         .getNoteId();
   }

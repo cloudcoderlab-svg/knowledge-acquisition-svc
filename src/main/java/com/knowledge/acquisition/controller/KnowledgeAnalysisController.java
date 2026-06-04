@@ -419,7 +419,12 @@ public class KnowledgeAnalysisController {
   public record AgileReadinessReport(
       @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
       @JsonProperty("totalWorkflows")
-          @JsonAlias({"total_workflows", "workflow_count", "totalBusinessFlows", "total_business_flows"})
+          @JsonAlias({
+            "total_workflows",
+            "workflow_count",
+            "totalBusinessFlows",
+            "total_business_flows"
+          })
           int totalWorkflows,
       @JsonProperty("workflowsWithTriggers")
           @JsonAlias({
@@ -457,25 +462,13 @@ public class KnowledgeAnalysisController {
           @JsonAlias({"total_business_rules", "rule_count", "business_rule_count"})
           int totalBusinessRules,
       @JsonProperty("rulesWithConditions")
-          @JsonAlias({
-            "rules_with_conditions",
-            "conditional_rules",
-            "businessRulesWithConditions"
-          })
+          @JsonAlias({"rules_with_conditions", "conditional_rules", "businessRulesWithConditions"})
           int rulesWithConditions,
       @JsonProperty("rulesWithValidation")
-          @JsonAlias({
-            "rules_with_validation",
-            "validation_rules",
-            "businessRulesWithValidation"
-          })
+          @JsonAlias({"rules_with_validation", "validation_rules", "businessRulesWithValidation"})
           int rulesWithValidation,
       @JsonProperty("rulesWithOutcomes")
-          @JsonAlias({
-            "rules_with_outcomes",
-            "rules_having_outcomes",
-            "businessRulesWithOutcomes"
-          })
+          @JsonAlias({"rules_with_outcomes", "rules_having_outcomes", "businessRulesWithOutcomes"})
           int rulesWithOutcomes,
       @JsonProperty("ruleCompletenessPercent")
           @JsonAlias({
@@ -606,7 +599,12 @@ public class KnowledgeAnalysisController {
   public record TestReadinessReport(
       @JsonProperty("projectId") @JsonAlias({"project_id", "id"}) UUID projectId,
       @JsonProperty("totalWorkflows")
-          @JsonAlias({"total_workflows", "workflow_count", "totalBusinessFlows", "total_business_flows"})
+          @JsonAlias({
+            "total_workflows",
+            "workflow_count",
+            "totalBusinessFlows",
+            "total_business_flows"
+          })
           int totalWorkflows,
       @JsonProperty("testableWorkflows")
           @JsonAlias({
@@ -631,11 +629,7 @@ public class KnowledgeAnalysisController {
           @JsonAlias({"testable_business_rules", "testable_rules", "rules_testable"})
           int testableBusinessRules,
       @JsonProperty("ruleTestabilityPercent")
-          @JsonAlias({
-            "rule_testability",
-            "rule_testability_percentage",
-            "businessRuleTestability"
-          })
+          @JsonAlias({"rule_testability", "rule_testability_percentage", "businessRuleTestability"})
           double ruleTestabilityPercent,
       @JsonProperty("estimatedTestCases")
           @JsonAlias({"estimated_test_cases", "test_case_count", "test_cases"})
