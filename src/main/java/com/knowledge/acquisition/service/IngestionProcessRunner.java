@@ -105,14 +105,10 @@ public class IngestionProcessRunner {
             process.setCompletedAt(OffsetDateTime.now());
           });
 
-      // Activate project for both COMPLETED and PARTIAL_SUCCESS ingestions
-      // Even with some failed documents, the project can still be marked ACTIVE
-      // Multiple versions can coexist as ACTIVE
-      try {
-        projectService.onIngestionSuccess(projectId, processStatus);
-      } catch (Exception e) {
-        log.error("Failed to activate project after ingestion: {}", projectId, e);
-      }
+      // Note: Project status is NOT updated to ACTIVE here
+      // It will be updated only after ALL pipeline phases complete successfully
+      // (ingestion → consolidation → planning → project-summary)
+      // See ProjectPipelineService.runPipeline() for the final status update
     } catch (Exception e) {
       log.error("Ingestion process failed: {}", processId, e);
       updateProcess(

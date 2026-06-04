@@ -161,15 +161,24 @@ public class ProjectPipelineService {
 
       int finalProcessedFiles = ingestion.getProcessedFiles();
       int finalFailedFiles = ingestion.getFailedFiles() + failedStages;
+      String finalStatus = finalFailedFiles == 0 ? "COMPLETED" : "PARTIAL_SUCCESS";
       updateProcess(
           processId,
           process -> {
             process.setProcessedFiles(finalProcessedFiles);
             process.setFailedFiles(finalFailedFiles);
             process.setCurrentFile(null);
-            process.setStatus(finalFailedFiles == 0 ? "COMPLETED" : "PARTIAL_SUCCESS");
+            process.setStatus(finalStatus);
             process.setCompletedAt(OffsetDateTime.now());
           });
+
+      // Mark project as ACTIVE after ALL pipeline phases complete successfully
+      // This includes: ingestion → consolidation → planning → project-summary
+      try {
+        projectService.onPipelineSuccess(projectId, finalStatus);
+      } catch (Exception e) {
+        log.error("Failed to activate project after pipeline completion: {}", projectId, e);
+      }
     } catch (Exception e) {
       log.error("Project pipeline failed for project {}", projectId, e);
       int finalFailedStages = Math.max(1, failedStages);

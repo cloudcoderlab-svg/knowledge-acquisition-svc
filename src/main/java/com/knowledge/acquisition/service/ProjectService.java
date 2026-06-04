@@ -143,22 +143,23 @@ public class ProjectService {
   }
 
   /**
-   * Called when a project's ingestion process completes successfully.
+   * Called when a project's full pipeline completes successfully.
    *
-   * <p>This method handles the multi-version lifecycle:
+   * <p>This method handles the multi-version lifecycle and should only be called after ALL pipeline
+   * phases complete successfully (ingestion → consolidation → planning → project-summary).
    *
    * <ol>
-   *   <li>Marks the project as ACTIVE (for both COMPLETED and PARTIAL_SUCCESS ingestions)
-   *   <li>Allows multiple successfully ingested versions to coexist as ACTIVE
+   *   <li>Marks the project as ACTIVE (for both COMPLETED and PARTIAL_SUCCESS pipelines)
+   *   <li>Allows multiple successfully processed versions to coexist as ACTIVE
    *   <li>Suspends only in-progress versions (DRAFT or INGESTING status) to prevent concurrent
-   *       ingestions
+   *       processing
    * </ol>
    *
-   * @param projectId the UUID of the project that completed ingestion
-   * @param processStatus the final status of the ingestion process (COMPLETED or PARTIAL_SUCCESS)
+   * @param projectId the UUID of the project that completed the full pipeline
+   * @param processStatus the final status of the pipeline process (COMPLETED or PARTIAL_SUCCESS)
    */
   @Transactional
-  public void onIngestionSuccess(UUID projectId, String processStatus) {
+  public void onPipelineSuccess(UUID projectId, String processStatus) {
     ProjectEntity project = find(projectId);
 
     // Mark project as ACTIVE for both COMPLETED and PARTIAL_SUCCESS
@@ -166,14 +167,14 @@ public class ProjectService {
     project.setStatus(ProjectStatus.ACTIVE);
     projectRepository.save(project);
     log.info(
-        "Project {} (v{}) marked as ACTIVE after {} ingestion",
+        "Project {} (v{}) marked as ACTIVE after {} pipeline completion",
         project.getProjectName(),
         project.getVersion(),
         processStatus);
 
     // Suspend any in-progress/running previous versions (DRAFT or INGESTING)
-    // This prevents multiple versions from ingesting simultaneously while allowing
-    // multiple successfully ingested versions to remain ACTIVE
+    // This prevents multiple versions from processing simultaneously while allowing
+    // multiple successfully processed versions to remain ACTIVE
     List<ProjectEntity> inProgressVersions =
         projectRepository.findAll().stream()
             .filter(
